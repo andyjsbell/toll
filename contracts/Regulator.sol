@@ -3,6 +3,7 @@ pragma solidity ^0.5.0;
 import {RegulatorI} from "./interfaces/RegulatorI.sol";
 import {Owned} from "./Owned.sol";
 import {TollBoothOperatorI} from "./interfaces/TollBoothOperatorI.sol";
+import {TollBoothOperator} from "./TollBoothOperator.sol";
 
 contract Regulator is RegulatorI, Owned {
 
@@ -109,7 +110,7 @@ contract Regulator is RegulatorI, Owned {
         fromOwner
         returns(TollBoothOperatorI newOperator) {
             require(owner != getOwner(), 'Regulator owner');
-            TollBoothOperator newOperator = new TollBoothOperator();
+            return new TollBoothOperator(true, deposit, owner);
         }
 
     /**

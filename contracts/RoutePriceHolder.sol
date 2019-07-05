@@ -12,6 +12,8 @@ import {TollBoothHolderI} from "./interfaces/TollBoothHolderI.sol";
 *     - has a constructor that takes no parameter, or you omit it.
 */
 
+// Contract is abstract as it does not implement TollBoothHolderI
+
 contract RoutePriceHolder is Owned, TollBoothHolderI, RoutePriceHolderI {
 
     mapping(address => mapping(address => uint)) routePrices;
@@ -79,7 +81,7 @@ contract RoutePriceHolder is Owned, TollBoothHolderI, RoutePriceHolderI {
         public
         view
         returns(uint priceWeis) {
-            
+
             return routePrices[entryBooth][exitBooth];
 
         }

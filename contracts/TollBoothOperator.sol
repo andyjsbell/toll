@@ -1,6 +1,25 @@
 pragma solidity ^0.5.0;
 
-contract TollBoothOperator is OwnedI, PausableI, RegulatedI, Multipler{
+import {Owned} from "./Owned.sol";
+import {Pausable} from "./Pausable.sol";
+import {Regulated} from "./Regulated.sol";
+import {MultiplierHolder} from "./MultiplierHolder.sol";
+import {DepositHolder} from "./DepositHolder.sol";
+import {TollBoothHolder} from "./TollBoothHolder.sol";
+import {RoutePriceHolder} from "./RoutePriceHolder.sol";
+import {PullPayment} from "./PullPayment.sol";
+import {TollBoothOperatorI} from "./interfaces/TollBoothOperatorI.sol";
+
+contract TollBoothOperator is
+    Owned,
+    Pausable,
+    Regulated,
+    MultiplierHolder,
+    DepositHolder,
+    TollBoothHolder,
+    RoutePriceHolder,
+    PullPayment,
+    TollBoothOperatorI {
 
     /**
      * This provides a single source of truth for the encoding algorithm.
@@ -11,9 +30,13 @@ contract TollBoothOperator is OwnedI, PausableI, RegulatedI, Multipler{
      * @return the hashed secret.
      */
     function hashSecret(bytes32 secret)
-        view
         public
-        returns(bytes32 hashed);
+        view
+        returns(bytes32 hashed) {
+
+            // TODO check algorithm
+            return keccak256(abi.encodePacked(secret, address(this)));
+        }
 
     /**
      * Event emitted when a vehicle made the appropriate deposit to enter the road system.
@@ -56,8 +79,14 @@ contract TollBoothOperator is OwnedI, PausableI, RegulatedI, Multipler{
             address entryBooth,
             bytes32 exitSecretHashed)
         public
+        whenPaused
         payable
-        returns (bool success);
+        returns (bool success) {
+
+            // TODO
+            return true;
+
+        }
 
     /**
      * @param exitSecretHashed The hashed secret used by the vehicle when entering the road.
@@ -77,7 +106,11 @@ contract TollBoothOperator is OwnedI, PausableI, RegulatedI, Multipler{
             address vehicle,
             address entryBooth,
             uint multiplier,
-            uint depositedWeis);
+            uint depositedWeis) {
+
+                // TODO
+                return (address(0x0), address(0x0), 0, 0);
+            }
 
     /**
      * Event emitted when a vehicle exits a road system.
@@ -127,7 +160,11 @@ contract TollBoothOperator is OwnedI, PausableI, RegulatedI, Multipler{
      */
     function reportExitRoad(bytes32 exitSecretClear)
         public
-        returns (uint status);
+        returns (uint status) {
+
+            // TODO
+            return 0;
+        }
 
     /**
      * @param entryBooth the entry booth that has pending payments.
@@ -138,7 +175,11 @@ contract TollBoothOperator is OwnedI, PausableI, RegulatedI, Multipler{
     function getPendingPaymentCount(address entryBooth, address exitBooth)
         view
         public
-        returns (uint count);
+        returns (uint count) {
+
+            // TODO
+            return 0;
+        }
 
     /**
      * Can be called by anyone. In case more than 1 payment was pending when the oracle gave a price.
@@ -162,7 +203,11 @@ contract TollBoothOperator is OwnedI, PausableI, RegulatedI, Multipler{
             address exitBooth,
             uint count)
         public
-        returns (bool success);
+        returns (bool success) {
+
+            // TODO
+            return true;
+        }
 
     /**
      * This function is commented out otherwise it prevents compilation of the completed contracts.
@@ -206,4 +251,17 @@ contract TollBoothOperator is OwnedI, PausableI, RegulatedI, Multipler{
      *         - one `address` parameter, the initial regulator, which cannot be 0.
      *     - a fallback function that rejects all incoming calls.
      */
+
+     constructor(bool paused, uint depositWeis, address regulator) public
+        Pausable(paused)
+        DepositHolder(depositWeis)
+        Regulated(regulator) {
+
+        setOwner(msg.sender);
+     }
+
+     function () external {
+         // TODO reject all calls
+         revert('nothing');
+     }
 }

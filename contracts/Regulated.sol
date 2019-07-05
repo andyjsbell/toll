@@ -17,6 +17,7 @@ contract Regulated is RegulatedI {
 
     constructor(address regulator) public {
         require(regulator != address(0x0), 'Invalid regulator');
+        currentRegulator = regulator;
     }
 
     /**
