@@ -15,6 +15,10 @@ contract Owned is OwnedI {
 
     address currentOwner;
 
+    constructor() public {
+        currentOwner = msg.sender;
+    }
+
     modifier fromOwner {
         require(msg.sender == currentOwner, 'Not the owner');
         _;

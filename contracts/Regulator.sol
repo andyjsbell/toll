@@ -135,16 +135,26 @@ contract Regulator is RegulatorI, Owned {
      */
     function removeOperator(address operator)
         public
-        returns(bool success);
+        fromOwner
+        returns(bool success) {
+
+            require(isOperator(operator), 'not valid operator');
+            emit LogTollBoothOperatorRemoved(msg.sender, operator);
+            delete tollBoothOperators[operator];
+            return true;
+        }
 
     /**
      * @param operator The address of the TollBoothOperator to test. It should accept a 0 address.
      * @return Whether the TollBoothOperator is indeed approved.
      */
     function isOperator(address operator)
-        view
         public
-        returns(bool indeed);
+        view
+        returns(bool indeed) {
+
+            return tollBoothOperators[operator];
+        }
 
 
 }

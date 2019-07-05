@@ -256,8 +256,6 @@ contract TollBoothOperator is
         Pausable(paused)
         DepositHolder(depositWeis)
         Regulated(regulator) {
-
-        setOwner(msg.sender);
      }
 
      function () external {
