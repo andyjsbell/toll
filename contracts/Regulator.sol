@@ -10,6 +10,10 @@ contract Regulator is RegulatorI, Owned {
     mapping(address => uint) public vehicles;
     mapping(address => bool) public tollBoothOperators;
 
+    constructor() public {
+        
+    }
+    
     /**
      * uint VehicleType:
      * 0: not a vehicle, absence of a vehicle

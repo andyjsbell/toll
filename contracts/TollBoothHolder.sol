@@ -5,6 +5,10 @@ import {Owned} from "./Owned.sol";
 contract TollBoothHolder is Owned, TollBoothHolderI {
 
     mapping (address => bool) booths;
+
+    constructor() public {
+        
+    }
     /**
      * Event emitted when a toll booth has been added to the TollBoothHolder.
      * @param sender The account that ran the action.

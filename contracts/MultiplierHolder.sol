@@ -12,6 +12,11 @@ import {Owned} from "./Owned.sol";
 contract MultiplierHolder is Owned, MultiplierHolderI {
 
     mapping(uint => uint) multipliers;
+
+    constructor() public {
+        
+    }
+    
     /**
      * Event emitted when a new multiplier has been set.
      * @param sender The account that ran the action.
