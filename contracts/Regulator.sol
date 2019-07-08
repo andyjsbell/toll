@@ -113,8 +113,16 @@ contract Regulator is RegulatorI, Owned {
         public
         fromOwner
         returns(TollBoothOperatorI newOperator) {
-            require(owner != getOwner(), 'Regulator owner');
-            return new TollBoothOperator(true, deposit, owner);
+            require(msg.sender != getOwner(), 'Regulator owner');
+            require(msg.sender != owner, 'Owner cannot be regulator');
+
+            TollBoothOperator tbo = new TollBoothOperator(true, deposit, address(this));
+            tbo.setOwner(owner);
+
+            emit LogTollBoothOperatorCreated(msg.sender, address(tbo), owner, deposit);
+
+            tollBoothOperators[address(tbo)] = true;
+            return tbo;
         }
 
     /**

@@ -9,6 +9,7 @@ import {TollBoothHolder} from "./TollBoothHolder.sol";
 import {RoutePriceHolder} from "./RoutePriceHolder.sol";
 import {PullPayment} from "./PullPayment.sol";
 import {TollBoothOperatorI} from "./interfaces/TollBoothOperatorI.sol";
+import {RegulatorI} from "./interfaces/RegulatorI.sol";
 
 contract TollBoothOperator is
     Owned,
@@ -20,6 +21,39 @@ contract TollBoothOperator is
     RoutePriceHolder,
     PullPayment,
     TollBoothOperatorI {
+
+    struct Entry {
+        address vehicle;
+        address entryBooth;
+        uint multiplier;
+        uint depositedWeis;
+    }
+
+    mapping(bytes32 => Entry) entries;
+
+    /*
+     * You need to create:
+     *
+     * - a contract named `TollBoothOperator` that:
+     *     - is `OwnedI`, `PausableI`, `DepositHolderI`, `TollBoothHolderI`,
+     *         `MultiplierHolderI`, `RoutePriceHolderI`, `RegulatedI`, `PullPaymentA`, and `TollBoothOperatorI`.
+     *     - has a constructor that takes:
+     *         - one `bool` parameter, the initial paused state.
+     *         - one `uint` parameter, the initial deposit wei value, which cannot be 0.
+     *         - one `address` parameter, the initial regulator, which cannot be 0.
+     *     - a fallback function that rejects all incoming calls.
+     */
+
+     constructor(bool paused, uint depositWeis, address regulator) public
+        Pausable(paused)
+        DepositHolder(depositWeis)
+        Regulated(regulator) {
+     }
+
+     function () external {
+         // TODO reject all calls
+         revert('nothing');
+     }
 
     /**
      * This provides a single source of truth for the encoding algorithm.
@@ -79,13 +113,26 @@ contract TollBoothOperator is
             address entryBooth,
             bytes32 exitSecretHashed)
         public
-        whenPaused
+        whenNotPaused
         payable
         returns (bool success) {
 
-            // TODO
-            return true;
+            // It should roll back if `entryBooth` is not a tollBooth.
+            require(isTollBooth(entryBooth), 'Not tollbooth');
+            require(entries[exitSecretHashed].vehicle == address(0x0), 'Secret hash in use');
+            address vehicle = msg.sender;
+            // It should roll back when the vehicle is not a registered vehicle.
+            uint vehicleType = getRegulator().getVehicleType(vehicle);
+            require(vehicleType != 0, 'Vehicle not registered');
+            // ??? TODO
+            // It should roll back when the vehicle is not allowed on this road system.
+            uint multiplier = getMultiplier(vehicleType);
+            // It should roll back if less than deposit * multiplier was sent alongside.
+            require(msg.value >= getDeposit() * multiplier, 'Insufficient value sent');
+            emit LogRoadEntered(vehicle, entryBooth, exitSecretHashed, multiplier, msg.value);
 
+            entries[exitSecretHashed] = Entry(vehicle, entryBooth, multiplier, msg.value);
+            return true;
         }
 
     /**
@@ -223,43 +270,24 @@ contract TollBoothOperator is
      *       The effective charge paid by the vehicle.
      *       The amount refunded to the vehicle.
      */
-    // function setRoutePrice(
-    //         address entryBooth,
-    //         address exitBooth,
-    //         uint priceWeis)
-    //     public
-    //     returns(bool success);
+    function setRoutePrice(
+            address entryBooth,
+            address exitBooth,
+            uint priceWeis)
+        public
+        returns(bool success) {
+            return true;
+        }
 
     /**
      * This function is commented out otherwise it prevents compilation of the completed contracts.
      * This function provides the same functionality with the eponymous function of `PullPaymentA`, which it
      * overrides, and to which it adds the following requirement:
-     *     - It should roll back when the contract is in the `true` paused state.
-    // function withdrawPayment()
-    //     public
-    //     returns(bool success);
-
-    /*
-     * You need to create:
-     *
-     * - a contract named `TollBoothOperator` that:
-     *     - is `OwnedI`, `PausableI`, `DepositHolderI`, `TollBoothHolderI`,
-     *         `MultiplierHolderI`, `RoutePriceHolderI`, `RegulatedI`, `PullPaymentA`, and `TollBoothOperatorI`.
-     *     - has a constructor that takes:
-     *         - one `bool` parameter, the initial paused state.
-     *         - one `uint` parameter, the initial deposit wei value, which cannot be 0.
-     *         - one `address` parameter, the initial regulator, which cannot be 0.
-     *     - a fallback function that rejects all incoming calls.
-     */
-
-     constructor(bool paused, uint depositWeis, address regulator) public
-        Pausable(paused)
-        DepositHolder(depositWeis)
-        Regulated(regulator) {
-     }
-
-     function () external {
-         // TODO reject all calls
-         revert('nothing');
-     }
+     *     - It should roll back when the contract is in the `true` paused state.*/
+    function withdrawPayment()
+        public
+        whenNotPaused
+        returns(bool success) {
+            return true;
+        }
 }
