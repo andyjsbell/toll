@@ -97,7 +97,7 @@ contract TollBoothOperator is
      *     It should roll back if `entryBooth` is not a tollBooth.
      *     It should roll back if less than deposit * multiplier was sent alongside.
      *     It should roll back if `exitSecretHashed` has previously been used by anyone to enter.
-     *     It should be possible for a vehicle to enter "again" before it has exited from the 
+     *     It should be possible for a vehicle to enter "again" before it has exited from the
      *       previous entry.
      * @param entryBooth The declared entry booth by which the vehicle will enter the system.
      * @param exitSecretHashed A hashed secret that when solved allows the operator to pay itself.
@@ -116,7 +116,8 @@ contract TollBoothOperator is
         whenNotPaused
         payable
         returns (bool success) {
-
+            // Check parameters
+            require(exitSecretHashed != "", 'Invalid hash');
             // It should roll back if `entryBooth` is not a tollBooth.
             require(isTollBooth(entryBooth), 'Not tollbooth');
             require(entries[exitSecretHashed].vehicle == address(0x0), 'Secret hash in use');
@@ -147,16 +148,21 @@ contract TollBoothOperator is
      * If no vehicles had ever entered with this hash, all values should be returned as `0`.
      */
     function getVehicleEntry(bytes32 exitSecretHashed)
-        view
         public
+        view
         returns(
             address vehicle,
             address entryBooth,
             uint multiplier,
             uint depositedWeis) {
 
-                // TODO
-                return (address(0x0), address(0x0), 0, 0);
+                require(exitSecretHashed != "", 'Invalid hash');
+                Entry memory entry = entries[exitSecretHashed];
+
+                return (entry.vehicle,
+                        entry.entryBooth,
+                        entry.multiplier,
+                        entry.depositedWeis);
             }
 
     /**
@@ -207,9 +213,17 @@ contract TollBoothOperator is
      */
     function reportExitRoad(bytes32 exitSecretClear)
         public
+        whenNotPaused
         returns (uint status) {
+            require(isTollBooth(msg.sender), 'Not toll booth');
+            bytes32 hashed = hashSecret(exitSecretClear);
+            Entry memory entry = entries[hashed];
+            require(entry.vehicle != address(0x0), 'Not a valid entry');
+            require(entry.entryBooth != msg.sender, 'Exit same as Entry');
+            // It should roll back if the secret has already been reported on exit. ??
+            require(entry.depositedWeis != 0, 'Already exited');
 
-            // TODO
+            // emit LogRoadExited(msg.sender, hashed, finalFee, refundWeis);
             return 0;
         }
 
