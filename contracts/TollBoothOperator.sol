@@ -10,6 +10,7 @@ import {RoutePriceHolder} from "./RoutePriceHolder.sol";
 import {PullPayment} from "./PullPayment.sol";
 import {TollBoothOperatorI} from "./interfaces/TollBoothOperatorI.sol";
 import {RegulatorI} from "./interfaces/RegulatorI.sol";
+import {SafeMath} from "./SafeMath.sol";
 
 contract TollBoothOperator is
     Owned,
@@ -22,6 +23,8 @@ contract TollBoothOperator is
     PullPayment,
     TollBoothOperatorI {
 
+    using SafeMath for uint;
+
     struct Entry {
         address vehicle;
         address entryBooth;
@@ -31,6 +34,12 @@ contract TollBoothOperator is
 
     mapping(bytes32 => Entry) entries;
 
+    struct Pending {
+        bytes32 secret;
+        uint count;
+    }
+
+    mapping(bytes32 => Pending) pending;
     /*
      * You need to create:
      *
@@ -223,8 +232,36 @@ contract TollBoothOperator is
             // It should roll back if the secret has already been reported on exit. ??
             require(entry.depositedWeis != 0, 'Already exited');
 
-            // emit LogRoadExited(msg.sender, hashed, finalFee, refundWeis);
-            return 0;
+            uint routePrice = getRoutePrice(entry.entryBooth, msg.sender);
+
+            if (routePrice > 0) {
+                // CHECK, can multiplier be 0 here
+                uint charge = routePrice.mul(entry.multiplier);
+                uint refundWeis = 0;
+                uint finalFee = charge;
+                if (entry.depositedWeis > charge) {
+                    // Handle refund
+                    refundWeis = entry.depositedWeis.sub(charge);
+                    finalFee = entry.depositedWeis;
+                }
+                emit LogRoadExited(msg.sender, hashed, finalFee, refundWeis);
+
+                if (refundWeis > 0) {
+                    asyncPayTo(entry.vehicle, refundWeis);
+                }
+
+                return 1;
+
+            } else {
+
+                emit LogPendingPayment(hashed, entry.entryBooth, msg.sender);
+
+                // Store pending payment
+                Pending memory p = pending[keccak256(abi.encodePacked(entry.entryBooth, msg.sender))];
+                p.count = p.count.add(1);
+                p.secret = hashed;
+                return 2;
+            }
         }
 
     /**
@@ -234,12 +271,11 @@ contract TollBoothOperator is
      * entry-exit pair was unknown.
      */
     function getPendingPaymentCount(address entryBooth, address exitBooth)
-        view
         public
+        view
         returns (uint count) {
 
-            // TODO
-            return 0;
+            return pending[keccak256(abi.encodePacked(entryBooth, exitBooth))].count;
         }
 
     /**
@@ -265,8 +301,38 @@ contract TollBoothOperator is
             uint count)
         public
         returns (bool success) {
+            require(isTollBooth(entryBooth) && isTollBooth(exitBooth), 'Not valid booth');
+            Pending memory p = pending[keccak256(abi.encodePacked(entryBooth, exitBooth))];
+            require(p.count > 0, 'Zero pending payments');
+            p.count = p.count.sub(count);
+            uint routePrice = getRoutePrice(entryBooth, exitBooth);
 
-            // TODO
+            // FIFO
+            if (routePrice > 0) {
+
+                Entry memory entry = entries[p.secret];
+
+                for (uint i = 0; i < count; i++) {
+                    // CHECK, can multiplier be 0 here
+                    uint charge = routePrice.mul(entry.multiplier);
+                    uint refundWeis = 0;
+                    uint finalFee = charge;
+                    if (entry.depositedWeis > charge) {
+                        // Handle refund
+                        refundWeis = entry.depositedWeis.sub(charge);
+                        finalFee = entry.depositedWeis;
+                    }
+                    emit LogRoadExited(msg.sender, p.secret, finalFee, refundWeis);
+
+                    if (refundWeis > 0) {
+                        asyncPayTo(entry.vehicle, refundWeis);
+                    }
+
+                    emit LogRoadExited(exitBooth, p.secret, finalFee, refundWeis);
+
+                }
+            }
+
             return true;
         }
 
