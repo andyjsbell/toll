@@ -1,5 +1,6 @@
 pragma solidity ^0.5.0;
 import {PullPaymentA} from "./interfaces/PullPaymentA.sol";
+import {SafeMath} from "./SafeMath.sol";
 
 /*
 * You need to create:
@@ -11,6 +12,8 @@ import {PullPaymentA} from "./interfaces/PullPaymentA.sol";
 
 contract PullPayment is PullPaymentA {
 
+    using SafeMath for uint;
+
     mapping(address => uint) balances;
     /**
      * Called by a child contract to pay an address by way of withdraw pattern.
@@ -21,7 +24,7 @@ contract PullPayment is PullPaymentA {
         internal {
             require(whom != address(0x0), 'Invalid address');
             require(amount > 0, 'Invalid amount');
-            balances[whom] = amount;
+            balances[whom] = balances[whom].add(amount);
         }
 
     /**
@@ -40,6 +43,7 @@ contract PullPayment is PullPaymentA {
             require(balances[msg.sender] > 0, 'No balance available');
             uint amount = balances[msg.sender];  // save gas here?
             balances[msg.sender] = 0;
+            emit LogPaymentWithdrawn(msg.sender, amount);
             msg.sender.call.value(amount);
             return true;
         }

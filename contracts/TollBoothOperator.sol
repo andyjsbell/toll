@@ -12,6 +12,27 @@ import {TollBoothOperatorI} from "./interfaces/TollBoothOperatorI.sol";
 import {RegulatorI} from "./interfaces/RegulatorI.sol";
 import {SafeMath} from "./SafeMath.sol";
 
+// TODO put in own class
+contract Queue {
+    mapping(uint => bytes32) queue;
+    uint first = 1;
+    uint last = 0;
+
+    function enqueue(bytes32 data) public {
+        last += 1;
+        queue[last] = data;
+    }
+
+    function dequeue() public returns (bytes32 data) {
+        require(last >= first, 'Non-empty queue');  // non-empty queue
+
+        data = queue[first];
+
+        delete queue[first];
+        first += 1;
+    }
+}
+
 contract TollBoothOperator is
     Owned,
     Pausable,
@@ -34,12 +55,10 @@ contract TollBoothOperator is
 
     mapping(bytes32 => Entry) entries;
 
-    struct Pending {
-        bytes32 secret;
-        uint count;
-    }
-
-    mapping(bytes32 => Pending) pending;
+    // Mapping route against pending count
+    mapping(bytes32 => uint) pending;
+    // Track in a queue(FIFO) hashed secrets
+    Queue hashedSecrets = new Queue();
     /*
      * You need to create:
      *
@@ -238,32 +257,39 @@ contract TollBoothOperator is
                 // CHECK, can multiplier be 0 here
                 uint charge = routePrice.mul(entry.multiplier);
                 uint refundWeis = 0;
-                uint finalFee = charge;
+                uint finalFee = entry.depositedWeis;
                 if (entry.depositedWeis > charge) {
                     // Handle refund
                     refundWeis = entry.depositedWeis.sub(charge);
-                    finalFee = entry.depositedWeis;
-                }
-                emit LogRoadExited(msg.sender, hashed, finalFee, refundWeis);
-
-                if (refundWeis > 0) {
+                    finalFee = charge;
                     asyncPayTo(entry.vehicle, refundWeis);
                 }
+
+                // TODO clear memory for entry
+                entries[hashed].vehicle = address(0x0);
+                entries[hashed].multiplier = 0;
+                entries[hashed].depositedWeis = 0;
+
+                emit LogRoadExited(msg.sender, hashed, finalFee, refundWeis);
+
+                asyncPayTo(getOwner(), finalFee);
 
                 return 1;
 
             } else {
 
                 emit LogPendingPayment(hashed, entry.entryBooth, msg.sender);
-
+                bytes32 route = keccak256(abi.encodePacked(entry.entryBooth, msg.sender));
                 // Store pending payment
-                Pending memory p = pending[keccak256(abi.encodePacked(entry.entryBooth, msg.sender))];
-                p.count = p.count.add(1);
-                p.secret = hashed;
+                pending[route]++;
+                hashedSecrets.enqueue(hashed);
                 return 2;
             }
         }
 
+    function processExit(bytes32 secretHash, uint routePrice) private returns(uint finalFee, uint refund) {
+
+    }
     /**
      * @param entryBooth the entry booth that has pending payments.
      * @param exitBooth the exit booth that has pending payments.
@@ -275,7 +301,7 @@ contract TollBoothOperator is
         view
         returns (uint count) {
 
-            return pending[keccak256(abi.encodePacked(entryBooth, exitBooth))].count;
+            return pending[keccak256(abi.encodePacked(entryBooth, exitBooth))];
         }
 
     /**
@@ -302,34 +328,39 @@ contract TollBoothOperator is
         public
         returns (bool success) {
             require(isTollBooth(entryBooth) && isTollBooth(exitBooth), 'Not valid booth');
-            Pending memory p = pending[keccak256(abi.encodePacked(entryBooth, exitBooth))];
-            require(p.count > 0, 'Zero pending payments');
-            p.count = p.count.sub(count);
+            uint pendingCount = pending[keccak256(abi.encodePacked(entryBooth, exitBooth))];
+            require(pendingCount > 0, 'Zero pending payments');
+            // TODO this needs to be moved down, writing to storage later in the function
+            pending[keccak256(abi.encodePacked(entryBooth, exitBooth))] = pendingCount.sub(count);
             uint routePrice = getRoutePrice(entryBooth, exitBooth);
 
             // FIFO
             if (routePrice > 0) {
 
-                Entry memory entry = entries[p.secret];
-
                 for (uint i = 0; i < count; i++) {
+
+                    bytes32 hashedSecret = hashedSecrets.dequeue();
+                    Entry memory entry = entries[hashedSecret];
+                    require(entry.vehicle != address(0x0), 'Invalid queue');
                     // CHECK, can multiplier be 0 here
                     uint charge = routePrice.mul(entry.multiplier);
                     uint refundWeis = 0;
-                    uint finalFee = charge;
+                    uint finalFee = entry.depositedWeis;
                     if (entry.depositedWeis > charge) {
                         // Handle refund
                         refundWeis = entry.depositedWeis.sub(charge);
-                        finalFee = entry.depositedWeis;
-                    }
-                    emit LogRoadExited(msg.sender, p.secret, finalFee, refundWeis);
-
-                    if (refundWeis > 0) {
+                        finalFee = charge;
                         asyncPayTo(entry.vehicle, refundWeis);
                     }
 
-                    emit LogRoadExited(exitBooth, p.secret, finalFee, refundWeis);
+                    emit LogRoadExited(exitBooth, hashedSecret, finalFee, refundWeis);
 
+                    // TODO clear memory for entry
+                    entries[hashedSecret].vehicle = address(0x0);
+                    entries[hashedSecret].multiplier = 0;
+                    entries[hashedSecret].depositedWeis = 0;
+
+                    asyncPayTo(getOwner(), finalFee);
                 }
             }
 
@@ -356,6 +387,11 @@ contract TollBoothOperator is
             uint priceWeis)
         public
         returns(bool success) {
+            super.setRoutePrice(entryBooth, exitBooth, priceWeis);
+            bytes32 route = keccak256(abi.encodePacked(entryBooth, exitBooth));
+            if (pending[route] > 0) {
+                clearSomePendingPayments(entryBooth, exitBooth, 1);
+            }
             return true;
         }
 
@@ -368,6 +404,7 @@ contract TollBoothOperator is
         public
         whenNotPaused
         returns(bool success) {
+            super.withdrawPayment();
             return true;
         }
 }
