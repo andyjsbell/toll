@@ -1,54 +1,108 @@
 import React, { Component, useState, useEffect } from 'react';
-
-import RegulatorContract from './contracts/Regulator.json'
-import OperatorContract from './contracts/TollBoothOperator.json'
 import getWeb3 from "./utils/getWeb3";
 import TextField from '@material-ui/core/TextField';
-// import Button from '@material-ui/core/Button';
-// import Select from '@material-ui/core/Select';
-
+import Button from '@material-ui/core/Button';
 import "./App.css";
+
+const Web3 = require('web3');
+const TruffleContract = require('truffle-contract');
+const RegulatorArtifact = require('./contracts/Regulator.json');
+
 
 // * a page for the deployed `Regulator`'s owner, which allows it to:
 //   * set vehicle types.
 //   * create a new `TollBoothOperator`.
-
-const Regulator = ({regulator}) => {
-  
-  const [address, setAddress] = useState('');
-
-  const addVehicleType = () => {
-
-  };
-
+const Accounts = ({accounts}) => {
+  const listItems = accounts.map((account) =>
+    <li key={account}>
+      {account}
+    </li>
+  );
   return (
     <>
-      <h1>Regulator</h1>
-      <h3>{regulator._address}</h3>
+      <ul>
+        {listItems}
+      </ul>
+    </>
+  );
+};
+
+const Regulator = ({owner, regulator}) => {
+  
+  // Vehicle address in type
+  const [vehicleAddress, setVehicleAddress] = useState('');
+  const [vehicleType, setVehicleType] = useState(0);
+  const [depositWeis, setDepositWeis] = useState(0);
+  const [message, setMessage] = useState('');
+
+  const addVehicleType = async () => {
+    
+    setMessage('');
+    let msg = 'Error in creating vehicle type';
+    
+    const txObj = await regulator.setVehicleType(vehicleAddress, vehicleType, { from: owner });
+    
+    if(txObj.logs.length === 1) {
+      const logVehicleTypeSet = txObj.logs[0];
+      if (logVehicleTypeSet.event === "LogVehicleTypeSet") {
+        msg = 'Vehicle type created!';
+      }  
+    }
+
+    setMessage(msg);
+  };
+
+  const createTollBoothOperator = async () => {
+    //bool paused, uint depositWeis, address regulator
+    const txObj = await regulator.createNewOperator(false, depositWeis, regulator, { from: owner });
+  };
+
+  console.log(regulator);
+  return (
+
+    <>
+      <h1>Regulator: {regulator.address}</h1>
+      <h3>Owner: {owner}</h3>
 
       <h3>Add Vehicle Type:</h3>
       <TextField
           id="outlined-name"
           label="0x0"
-          onChange={e => setAddress(e.target.value)}
+          onChange={e => setVehicleAddress(e.target.value)}
           margin="normal"
           placeholder="Enter Vehicle Address"
           variant="outlined"
-      />   
+      />
       <TextField
           id="outlined-name"
           label="0..."
-          onChange={e => setAddress(e.target.value)}
+          onChange={e => setVehicleType(e.target.value)}
           margin="normal"
           placeholder="Enter Vehicle Type"
           variant="outlined"
-      />  
-      {/* <Button 
+      /><br/>  
+      <Button 
           size="small" 
           color="primary"
           onClick={() => addVehicleType()}>
           Add Vehicle Type
-      </Button> */}
+      </Button>
+
+      <h3>Create Toll Booth Operator</h3>
+      <TextField
+          id="outlined-name"
+          label="0"
+          onChange={e => setDepositWeis(e.target.value)}
+          margin="normal"
+          placeholder="Set Deposit { from: owner }in Wei"
+          variant="outlined"
+      /><br/>
+      <Button
+          size="small" 
+          color="primary"
+          onClick={() => createTollBoothOperator()}>
+          Create Toll Booth Operator
+      </Button>
     </>
     );
 };
@@ -100,28 +154,24 @@ class App extends Component {
 
   componentDidMount = async () => {
     try {
-      // Get network provider and web3 instance.
-      const web3 = await getWeb3();
-
-      // Use web3 to get the user's accounts.
-      const accounts = await web3.eth.getAccounts();
-
-      // // Get the contract instance.
-      const networkId = await web3.eth.net.getId();
-      const deployedNetwork = RegulatorContract.networks[networkId];
-      const regulator = new web3.eth.Contract(
-        RegulatorContract.abi,
-        deployedNetwork && deployedNetwork.address,
-      );
+      // Workaround for compatibility between web3 and truffle-contract
+      Web3.providers.HttpProvider.prototype.sendAsync = Web3.providers.HttpProvider.prototype.send;	
+	    const web3 = await getWeb3();
+	    const accounts = await web3.eth.getAccounts();
+	    const Regulator = TruffleContract(RegulatorArtifact);
+    	Regulator.setProvider(web3.currentProvider);
+	    console.log('accounts --> ' + accounts);
+    	const instance = await Regulator.deployed();
+    	console.log('regulator.address --> ' + instance.address);
       
-      // Set web3, accounts, and contract to the state, and then proceed with an
-      // example of interacting with the contract's methods.
-      this.setState({ web3, accounts, regulator: regulator });
+      this.setState({ web3, accounts, regulator:instance });
+
     } catch (error) {
       // Catch any errors for any of the above operations.
       alert(
         `Failed to load web3, accounts, or contract. Check console for details.`,
       );
+
       console.error(error);
     }
   };
@@ -132,8 +182,11 @@ class App extends Component {
     }
     return (
       <div className="App">
+        <Accounts
+          accounts={this.state.accounts}/>
         <Regulator
-          regulator={this.state.regulator}/>
+          regulator={this.state.regulator}
+          owner={this.state.accounts[0]}/>
         <TollBoothOperator></TollBoothOperator>
         <Vehicle></Vehicle>
         <TollBooth></TollBooth>
