@@ -13,9 +13,13 @@ import TableCell from '@material-ui/core/TableCell';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
-import FormHelperText from '@material-ui/core/FormHelperText';
 import FormControl from '@material-ui/core/FormControl';
 import InputLabel from '@material-ui/core/InputLabel';
+import AppBar from '@material-ui/core/AppBar';
+import Tabs from '@material-ui/core/Tabs';
+import Tab from '@material-ui/core/Tab';
+import Typography from '@material-ui/core/Typography';
+
 // {loading && <CircularProgress size={24} className={classes.buttonProgress} />}
 
 // TODO
@@ -31,6 +35,18 @@ const TruffleContract = require('truffle-contract');
 const RegulatorArtifact = require('./contracts/Regulator.json');
 const TollBoothOperatorArtifact = require('./contracts/TollBoothOperator.json');
 
+function TabContainer(props) {
+  return (
+    <Typography component="div" style={{ padding: 8 * 3 }}>
+      {props.children}
+    </Typography>
+  );
+}
+
+// TabContainer.propTypes = {
+//   children: PropTypes.node.isRequired,
+// };
+
 const useStyles = makeStyles(theme => ({
   button: {
     margin: theme.spacing(1),
@@ -40,6 +56,8 @@ const useStyles = makeStyles(theme => ({
   },
   root: {
     width: '100%',
+    flexGrow: 1,
+    backgroundColor: theme.palette.background.paper,
   },
   paper: {
     marginTop: theme.spacing(3),
@@ -62,11 +80,12 @@ const Accounts = ({accounts, accountChanged, label}) => {
   };
 
   return (
-    <FormControl className={classes.formControl} error>
+    <FormControl className={classes.formControl} style={{minWidth: 300}}>
       <InputLabel htmlFor="name">{label}</InputLabel>
         {accounts.length > 0 ?
             <Select
                 value={account}
+                autoWidth={true}
                 onChange={e => update(e.target.value)}>
                 {
                     accounts.map( (account) => (
@@ -113,7 +132,7 @@ const VehicleTypesSelector = ({vehicles, vehicleTypeChanged}) => {
   };
 
   return (
-    <FormControl className={classes.formControl} error>
+    <FormControl className={classes.formControl} style={{minWidth: 300}}>
       <InputLabel htmlFor="name">Vehicle Type</InputLabel>
         {vehicles ?
             <Select
@@ -131,6 +150,7 @@ const VehicleTypesSelector = ({vehicles, vehicleTypeChanged}) => {
     </FormControl>
   );
 };
+
 const TollBoothOperators = ({tbos}) => {
   const classes = useStyles();
   return (
@@ -172,7 +192,7 @@ const TollBoothOperatorsSelector = ({tbos, tboChanged}) => {
   };
 
   return (
-    <FormControl className={classes.formControl} error>
+    <FormControl className={classes.formControl} style={{minWidth: 300}}>
       <InputLabel htmlFor="name">Operator</InputLabel>
         {tbos.length > 0 ?
             <Select
@@ -222,7 +242,7 @@ const TollBooths = ({booths}) => {
   );
 };
 
-const TollBoothSelector = ({booths, boothChanged}) => {
+const TollBoothSelector = ({booths, boothChanged, label}) => {
   const classes = useStyles();
   const [booth, setBooth] = useState(null);
 
@@ -232,15 +252,17 @@ const TollBoothSelector = ({booths, boothChanged}) => {
   };
 
   return (
-    <FormControl className={classes.formControl} error>
-      <InputLabel htmlFor="name">Toll Booth</InputLabel>
-        {booths.length > 0 ?
+    <>
+    {booths && booths.length > 0 ?
+    <FormControl className={classes.formControl} style={{minWidth: 300}}>
+      <InputLabel htmlFor="name">{label} Toll Booth</InputLabel>
+        
             <Select
                 value={booth}
                 onChange={e => update(e.target.value)}
                 displayEmpty>
                 <MenuItem value="" disabled>
-                  Toll Booth
+                  {label} Toll Booth
                 </MenuItem>
                 {
                     booths.map( (booth) => (
@@ -248,11 +270,203 @@ const TollBoothSelector = ({booths, boothChanged}) => {
                     ))
                 }
                 
-            </Select>: null}
+            </Select>
+    </FormControl>: null}</>
+  );
+};
+
+const RoutePrices = ({routePrices}) => {
+  const classes = useStyles();
+  return (
+    <>
+    {routePrices && routePrices.length > 0 ?
+    <Paper className={classes.paper}>
+      <h3>Route Prices</h3>
+        <Table className={classes.table} size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell align="left">Sender</TableCell>
+              <TableCell align="left">Entry Booth</TableCell>
+              <TableCell align="left">Exit Booth</TableCell>
+              <TableCell align="left">Price Weis</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {routePrices.map(row => (
+              <TableRow key={row.id}>
+                <TableCell align="left">{row.value.sender}</TableCell>
+                <TableCell align="left">{row.value.entryBooth}</TableCell>
+                <TableCell align="left">{row.value.exitBooth}</TableCell>
+                <TableCell align="left">{row.value.priceWeis}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+    </Paper>
+    : null}
+    </>
+  );
+};
+
+const Multipliers = ({multipliers}) => {
+  const classes = useStyles();
+  return (
+    <>
+    {multipliers && multipliers.length > 0 ?
+    <Paper className={classes.paper}>
+      <h3>Multipliers</h3>
+        <Table className={classes.table} size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell align="left">Sender</TableCell>
+              <TableCell align="left">Vehicle Type</TableCell>
+              <TableCell align="left">Multiplier</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {multipliers.map(row => (
+              <TableRow key={row.id}>
+                <TableCell align="left">{row.value.sender}</TableCell>
+                <TableCell align="left">{row.value.vehicleType}</TableCell>
+                <TableCell align="left">{row.value.multiplier}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+    </Paper>
+    : null}
+    </>
+  );
+};   
+
+const VehicleSelector = ({vehicles, vehicleChanged}) => {
+  const classes = useStyles();
+  const [vehicle, setVehicle] = useState('');
+  
+  const update = (selected) => {
+    setVehicle(selected);
+    vehicleChanged(selected);
+  };
+
+  return (
+    <FormControl className={classes.formControl} style={{minWidth: 300}}>
+      <InputLabel htmlFor="name">Vehicle</InputLabel>
+        {vehicles ?
+            <Select
+                value={vehicle}
+                onChange={e => update(e.target.value)}>
+                <MenuItem value="" disabled>
+                  Vehicle
+                </MenuItem>
+                {
+                    vehicles.map( (vehicle) => (
+                        <MenuItem key={vehicle.id} value={vehicle.value.address}>{vehicle.value.address}</MenuItem>
+                    ))
+                }
+
+            </Select>:'No vehicles!'}
     </FormControl>
   );
 };
 
+const VehicleEntries = ({entries}) => {
+  const classes = useStyles();
+  return (
+    <>
+    {entries && entries.length > 0 ?
+    <Paper className={classes.paper}>
+      <h3>Entries</h3>
+        <Table className={classes.table} size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell align="left">Vehicle</TableCell>
+              <TableCell align="left">Entry Booth</TableCell>
+              <TableCell align="left">Exit Secret Hashed</TableCell>
+              <TableCell align="left">Multiplier</TableCell>
+              <TableCell align="left">Deposited Weis</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {entries.map(row => (
+              <TableRow key={row.id}>
+                <TableCell align="left">{row.value.vehicle}</TableCell>
+                <TableCell align="left">{row.value.entryBooth}</TableCell>
+                <TableCell align="left">{row.value.exitSecretHashed}</TableCell>
+                <TableCell align="left">{row.value.multiplier}</TableCell>
+                <TableCell align="left">{row.value.depositedWeis}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+    </Paper>
+    : null}
+    </>
+  );
+}; 
+
+const VehicleExits = ({exits}) => {
+  const classes = useStyles();
+  return (
+    <>
+    {exits && exits.length > 0 ?
+    <Paper className={classes.paper}>
+      <h3>Normal Exits</h3>
+        <Table className={classes.table} size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell align="left">Exit Booth</TableCell>
+              <TableCell align="left">Exit Secret Hashed</TableCell>
+              <TableCell align="left">Final Fee</TableCell>
+              <TableCell align="left">Refund Weis</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {exits.map(row => (
+              <TableRow key={row.id}>
+                <TableCell align="left">{row.value.exitBooth}</TableCell>
+                <TableCell align="left">{row.value.exitSecretHashed}</TableCell>
+                <TableCell align="left">{row.value.finalFee}</TableCell>
+                <TableCell align="left">{row.value.refundWeis}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+    </Paper>
+    : null}
+    </>
+  );
+}; 
+
+const VehiclePendings = ({pendings}) => {
+  const classes = useStyles();
+  return (
+    <>
+    {pendings && pendings.length > 0 ?
+    <Paper className={classes.paper}>
+      <h3>Pendings</h3>
+        <Table className={classes.table} size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell align="left">Exit Secret Hashed</TableCell>
+              <TableCell align="left">Entry Booth</TableCell>
+              <TableCell align="left">Exit Booth</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {pendings.map(row => (
+              <TableRow key={row.id}>
+                <TableCell align="left">{row.value.exitSecretHashed}</TableCell>
+                <TableCell align="left">{row.value.entryBooth}</TableCell>
+                <TableCell align="left">{row.value.exitBooth}</TableCell>                
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+    </Paper>
+    : null}
+    </>
+  );
+};
 // * a page for the deployed `Regulator`'s owner, which allows it to:
 //   * set vehicle types.
 //   * create a new `TollBoothOperator`.
@@ -295,11 +509,11 @@ const Regulator = (props) => {
     setMessage('');
     let msg = 'Error in creating Toll booth operator';
     try {
-      const txObj = await props.regulator.createNewOperator(operatorOwner, depositWeis, { from: props.accounts[0], gas: 5000000 });
+      const txObj = await props.regulator.createNewOperator(operatorOwner, depositWeis, { from: props.accounts[0], gas: 500000 });
       if(txObj.logs.length === 2) {
         const logTollBoothOperatorCreated = txObj.logs[1];
         if (logTollBoothOperatorCreated.event === "LogTollBoothOperatorCreated") {
-          msg = 'Toll booth operator created successfully!';
+          msg = 'Toll booth operator created successfully!';        
         }  
       }
     } catch(e) {
@@ -319,7 +533,7 @@ const Regulator = (props) => {
 
         <Accounts
           label='Account' 
-          accounts={props.accounts}
+          accounts={props.accounts.slice(1)}
           accountChanged={(account)=>setVehicleAddress(account)}/>
         <br/>
       
@@ -336,18 +550,19 @@ const Regulator = (props) => {
             variant="contained"
             color="primary"
             className={classes.button}
-            disabled={vehicleType}
+            disabled={!vehicleType}
             onClick={() => addVehicleType()}>
             Set Vehicle Type
         </Button>
       </Paper>
-      
-      <VehicleTypes vehicles={props.vehicles}/>
+      {props.vehicles.length > 0 ? 
+        <VehicleTypes vehicles={props.vehicles}/>
+      : null}
       <Paper className={classes.paper}>
       <h3>Create Toll Booth Operator:</h3>
         <Accounts 
           label='Owner'
-          accounts={props.accounts}
+          accounts={props.accounts.slice(1)}
           accountChanged={(account)=>setOperatorOwner(account)}/>
         <br/>
       
@@ -363,12 +578,13 @@ const Regulator = (props) => {
             size="small" 
             color="primary"
             variant="contained"
-            disabled={operatorOwner}
+            disabled={!operatorOwner}
             onClick={() => createTollBoothOperator()}>
             Create Toll Booth Operator
         </Button>
         <br/>
-        <TollBoothOperators tbos={props.tbos}/>
+        {props.tbos.length > 0  ?
+        <TollBoothOperators tbos={props.tbos}/> : null }
         </Paper>
     </>
     );
@@ -389,41 +605,74 @@ const TollBoothOperator = (props) => {
   const [booths, setBooths] = useState([]);
   const [tollBoothAddress, setTollBoothAddress] = useState('');
   const [message, setMessage] = useState('');
-  const [tollBooths, setTollBooths] = useState([]);
-
+  
   const [entryBoothAddress, setEntryBoothAddress] = useState('');
   const [exitBoothAddress, setExitBoothAddress] = useState('');
   const [routePrice, setRoutePrice] = useState(0);
-  const [baseRoutePrices, setBaseRoutePrices] = useState([]);
+  const [routePrices, setRoutePrices] = useState([]);
 
   const [multiplier, setMultiplier] = useState(0);
   const [vehicleType, setVehicleType] = useState(0);
   const [multipliers, setMultipliers] = useState([]);
   const [currentInstance, setCurrentInstance] = useState(null);
-  
-  let a = [];
+  const [isRunning, setRunning] = useState(false);
 
+  const [isLoading, setLoading] = useState(false);
+
+  let tmpTollBooths = [];
+  let tmpRoutePrices = [];
+  let tmpMultipliers = [];
+  
   const updateTbo = async (tbo) => {
     if (tbo === tollBoothOperator)
       return;
     
+    setLoading(true);
     setTollBoothOperator(tbo)
     const TollBoothOperator = TruffleContract(TollBoothOperatorArtifact);      
     TollBoothOperator.setProvider(props.web3.currentProvider);
     const instance = await TollBoothOperator.at(tbo.value.operator);
     setCurrentInstance(instance);
-  
+    
+    setRunning(!(await instance.isPaused()));
+
     setBooths([]);
 
     instance.LogTollBoothAdded({}, {fromBlock:0}).watch((err, result) => {
       
-      a = [...a, 
-        { id: booths.length, 
+      tmpTollBooths = [...tmpTollBooths, 
+        { id: tmpTollBooths.length, 
         value: {  operator: result.args.sender, 
           tollBooth: result.args.tollBooth}}];
       
-      setBooths(a);
+      setBooths(tmpTollBooths);
     });
+
+    instance.LogRoutePriceSet({}, {fromBlock:0}).watch((err, result) => {
+
+      tmpRoutePrices = [...tmpRoutePrices, 
+        { id: tmpRoutePrices.length, 
+        value: {  sender:result.args.sender, 
+                  entryBooth: result.args.entryBooth, 
+                  exitBooth: result.args.exitBooth,
+                  priceWeis: result.args.priceWeis.toNumber() }}];
+      
+      setRoutePrices(tmpRoutePrices);
+    });
+
+    instance.LogMultiplierSet({}, {fromBlock:0}).watch((err, result) => {
+
+      console.log(result);
+      tmpMultipliers = [...tmpMultipliers, 
+        { id: tmpMultipliers.length, 
+        value: {  sender:result.args.sender, 
+                  vehicleType: result.args.vehicleType.toNumber(), 
+                  multiplier: result.args.multiplier.toNumber()}}];
+      
+      setMultipliers(tmpMultipliers);
+    });
+
+    setLoading(false);
   };
 
   const addTollBooth = async () => {
@@ -465,22 +714,18 @@ const TollBoothOperator = (props) => {
 
       if(!currentInstance)
         return;
-      
+
+      console.log(entryBoothAddress, exitBoothAddress, routePrice, tollBoothOperator.value.owner);
       const txObj = await currentInstance.setRoutePrice(entryBoothAddress, 
                                                         exitBoothAddress, 
                                                         routePrice, 
-                                                        {from: tollBoothOperator.owner, 
+                                                        {from: tollBoothOperator.value.owner, 
                                                           gas: 500000});
           
       if(txObj.logs.length > 1) {
         const logRoutePriceSet = txObj.logs[0];
         if (logRoutePriceSet.event === "LogRoutePriceSet") {
           msg = 'Created toll booth successfully!';
-          setBaseRoutePrices([...baseRoutePrices, 
-                              { id: baseRoutePrices.length, 
-                                value: {entry: logRoutePriceSet.args.entryBooth,
-                                         exit: logRoutePriceSet.args.exitBooth,
-                                        price: logRoutePriceSet.args.priceWeis}}]);
         }  
       }
     } catch(e) {
@@ -503,17 +748,13 @@ const TollBoothOperator = (props) => {
       
       const txObj = await currentInstance.setMultiplier(vehicleType, 
                                                                   multiplier, 
-                                                                  {from: tollBoothOperator.owner, 
+                                                                  {from: tollBoothOperator.value.owner, 
                                                                     gas: 500000});
             
       if(txObj.logs.length > 1) {
         const logMultiplierSet = txObj.logs[0];
         if (logMultiplierSet.event === "LogMultiplierSet") {
           msg = 'Set multiplier successfully!';
-          setMultiplier([...multipliers, 
-                        {   id: multipliers.length, 
-                          value: {type: logMultiplierSet.args.vehicleType,
-                            multiplier: logMultiplierSet.args.multiplier}}]);
         }  
       }
     } catch(e) {
@@ -523,120 +764,157 @@ const TollBoothOperator = (props) => {
     setMessage(msg);
   };
 
+  const start = async () => {
+    
+    let msg = 'Failed to start';
+
+    if(currentInstance) {
+      const txObj = await currentInstance.setPaused(false, {from: tollBoothOperator.value.owner});
+
+      if(txObj.logs.length > 0) {
+        const logPausedSet = txObj.logs[0];
+        if (logPausedSet.event === "LogPausedSet") {
+          msg = 'Started successfully!';
+          setRunning(true);
+        }  
+      }
+    }
+    
+    setMessage(msg);
+  };
+
+  const stop = async () => {
+    
+    let msg = 'Failed to stop';
+    
+    if(currentInstance) {
+      const txObj = await currentInstance.setPaused(true, {from: tollBoothOperator.value.owner});
+
+      if(txObj.logs.length > 0) {
+        const logPausedSet = txObj.logs[0];
+        if (logPausedSet.event === "LogPausedSet") {
+          msg = 'Started successfully!';
+          setRunning(false);
+        }  
+      }
+    }
+
+    setMessage(msg);
+  };
+
   return (
     <>
-      <h1>Toll Booth Operator</h1>
-
-      <h3>Select Operator</h3>      
-      {message}<br/>
-      
-      <TollBoothOperatorsSelector
-        tbos={props.tbos}
-        tboChanged={(tbo)=>updateTbo(tbo)}/>
-      <br/>
-      <br/>
-      <div>
-      <h3>Add Toll Booth</h3>      
-      <Accounts 
-        label='Toll Booth'
-        accounts={props.accounts}
-        accountChanged={(account)=>setTollBoothAddress(account)}/> 
-      <br/><br/>
-      
-      <Button
-          size="small" 
-          color="primary"
-          variant="contained"
-          disabled={!tollBoothOperator}
-          onClick={() => addTollBooth()}>
-          Add Toll Booth
-      </Button>
-      <TollBooths
-        booths={booths}/>
-
-      </div>
-      <div>
-      <h3>Add Base Route Price</h3>
-        <TollBoothSelector
-          booths={booths}
-          boothChanged={(account)=>setEntryBoothAddress(account)}/> 
+      {props.tbos.length > 0 ? 
+      <>
+        <h1>Toll Booth Operator</h1>
+        <h3>Select Operator</h3>      
+        {message}<br/>
+        {isLoading && <CircularProgress size={68}/>}
         <br/>
-        
-        <TollBoothSelector
-          booths={booths}
-          boothChanged={(account)=>setExitBoothAddress(account)}/> 
+        <TollBoothOperatorsSelector
+          tbos={props.tbos}
+          tboChanged={(tbo)=>updateTbo(tbo)}/>
         <br/>
-        
-        <TextField
-            id="outlined-name"
-            label="Price Wei"
-            onChange={e => setRoutePrice(e.target.value)}
-            margin="normal"
-            placeholder="0"
-            variant="outlined"
-        /><br/>
-        <Button
+        <br/>
+        {currentInstance ?
+        <>
+
+        <div>
+        {isRunning ? 
+          <Button
             size="small" 
-            color="primary"
+            color="secondary"
             variant="contained"
-            disabled={!tollBoothOperator || (booths && booths.length < 2)}
-            onClick={() => addBaseRoutePrice()}>
-            Add Base Route Price
-        </Button>
-        {baseRoutePrices.length > 0 ?
-        <div>
-        <h3>Base Route Prices</h3>
-        <div>
-        <ul>
-          {baseRoutePrices.map((rp) =>
-            <li key={rp.id}>
-              {rp.value.entry} - {rp.value.exit} - {rp.value.price} 
-            </li>
-          )}
-        </ul>
-        </div>
-        </div> 
-      : null}
-      </div>
-      <div>
-      <h3>Set Mulitiplier</h3>
-        <VehicleTypesSelector
-            vehicles={props.vehicles}
-            vehicleTypeChanged={(type)=>setVehicleType(type)}
-            />
-        <br/>
-        <TextField
-            id="outlined-name"
-            label="Multiplier"
-            onChange={e => setMultiplier(e.target.value)}
-            margin="normal"
-            placeholder="0"
-            variant="outlined"
-        /><br/>
+            onClick={() => stop()}>Stop</Button> : 
+          <Button
+            size="small" 
+            color="secondary"
+            variant="contained"
+            onClick={() => start()}>Start</Button>}
+
+        <h3>Add Toll Booth</h3>      
+        <Accounts 
+          label='Toll Booth'
+          accounts={props.accounts.slice(1)}
+          accountChanged={(account)=>setTollBoothAddress(account)}/> 
+        <br/><br/>
         
         <Button
             size="small" 
             color="primary"
             variant="contained"
             disabled={!tollBoothOperator}
-            onClick={() => setNewMultiplier()}>
-            Set Mulitiplier
+            onClick={() => addTollBooth()}>
+            Add Toll Booth
         </Button>
-        {multipliers.length > 0 ?
-        <div>
-        <h3>Multipliers</h3>
-        <div>
-        <ul>
-          {multipliers.map((mp) =>
-            <li key={mp.id}>
-              {mp.value.type} - {mp.value.multiplier} 
-            </li>
-          )}
-        </ul>
+        <TollBooths
+          booths={booths}/>
+
         </div>
-        </div> 
-      : null}
-      </div>
+        <div>
+        <h3>Add Base Route Price</h3>
+          {booths.length > 1 ?
+          <>
+          <TollBoothSelector
+            label="Entry"
+            booths={booths}
+            boothChanged={(account)=>setEntryBoothAddress(account)}/> 
+          <br/>
+          
+          <TollBoothSelector
+            label="Exit"
+            booths={booths}
+            boothChanged={(account)=>setExitBoothAddress(account)}/> 
+          <br/>
+          
+          <TextField
+              id="outlined-name"
+              label="Price Wei"
+              onChange={e => setRoutePrice(e.target.value)}
+              margin="normal"
+              placeholder="0"
+              variant="outlined"
+          /><br/>
+          <Button
+              size="small" 
+              color="primary"
+              variant="contained"
+              disabled={!tollBoothOperator || (booths && booths.length < 2)}
+              onClick={() => addBaseRoutePrice()}>
+              Add Base Route Price
+          </Button></> : "We need at least two booths"}
+          <RoutePrices
+            routePrices={routePrices}/>
+        </div>
+        <div>
+        <h3>Set Mulitiplier</h3>
+          <VehicleTypesSelector
+              vehicles={props.vehicles}
+              vehicleTypeChanged={(type)=>setVehicleType(type)}
+              />
+          <br/>
+          <TextField
+              id="outlined-name"
+              label="Multiplier"
+              onChange={e => setMultiplier(e.target.value)}
+              margin="normal"
+              placeholder="0"
+              variant="outlined"
+          /><br/>
+          
+          <Button
+              size="small" 
+              color="primary"
+              variant="contained"
+              disabled={!tollBoothOperator}
+              onClick={() => setNewMultiplier()}>
+              Set Mulitiplier
+          </Button>
+          <Multipliers
+            multipliers={multipliers}/>
+        </div>
+        </>: null}      
+      </> : null}
     </>
   );
 };
@@ -646,99 +924,171 @@ const TollBoothOperator = (props) => {
 // * see its history of entry / exit.
 // * no need to see its pending payments.
 
-const Vehicle = ({web3, testString}) => {
+const Vehicle = (props) => {
+  
+  const [message, setMessage] = useState('');
+  
   const [vehicleAddress, setVehicleAddress] = useState('');
   const [balance, setBalance] = useState(0);
+  const [deposit, setDeposit] = useState(0);
   const [history, setHistory] = useState([]);
   const [clearSecret, setClearSecret] = useState('');
+  const [tollBoothOperator, setTollBoothOperator] = useState(null);
+  const [booths, setBooths] = useState([]);
+  const [entries, setEntries] = useState([]);
+  const [exits, setExits] = useState([]);
+  const [entryBooth, setEntryBooth] = useState('');
 
-  const getHash = async () => {
+  const [currentInstance, setCurrentInstance] = useState(null);
 
+  let tmpTollBooths = [];
+  let tmpEntries = [];
+  let tmpExits = [];
+
+  const update = async (tbo, vehicle) => {
+    if (!tbo)
+      return;
+    
+    const TollBoothOperator = TruffleContract(TollBoothOperatorArtifact);      
+    TollBoothOperator.setProvider(props.web3.currentProvider);
+    const instance = await TollBoothOperator.at(tbo.value.operator);
+    setCurrentInstance(instance);
+  
+    setBooths([]);
+    setEntries([]);
+    setExits([]);
+
+    instance.LogTollBoothAdded({}, {fromBlock:0}).watch((err, result) => {
+      
+      tmpTollBooths = [...tmpTollBooths, 
+        { id: tmpTollBooths.length, 
+        value: {  operator: result.args.sender, 
+          tollBooth: result.args.tollBooth}}];
+      
+      setBooths(tmpTollBooths);
+    });
+
+    instance.LogRoadEntered({vehicle: vehicleAddress}, {fromBlock:0}).watch((err, result) => {
+      
+      tmpEntries = [...tmpEntries, 
+        { id: tmpEntries.length, 
+        value: {  vehicle: result.args.vehicle, 
+                  entryBooth: result.args.entryBooth,
+                  exitSecretHashed: result.args.exitSecretHashed,
+                  multiplier: result.args.multiplier.toNumber(),
+                  depositedWeis: result.args.depositedWeis.toNumber()}}];
+      
+      setEntries(tmpEntries);
+      
+      instance.LogRoadExited({exitSecretHashed: result.args.exitSecretHashed}, {fromBlock:0}).watch((err, result) => {
+      
+        tmpExits = [...tmpExits, 
+          { id: tmpExits.length, 
+          value: {  exitBooth: result.args.exitBooth, 
+            exitSecretHashed: result.args.exitSecretHashed,
+                    finalFee: result.args.finalFee.toNumber(),
+                  refundWeis: result.args.refundWeis.toNumber()}}];
+        
+        setExits(tmpExits);
+      });
+    });
   };
 
-  const getVehicleDetails = async () => {
-    setBalance(await web3.eth.getBalance(vehicleAddress));
+  const updateVehicle = async (vehicle) => {
+    setBalance(await props.web3.eth.getBalance(vehicle));
+    setVehicleAddress(vehicle);
+    update(tollBoothOperator, vehicle);
+  };
+
+  const updateTbo = async (tbo) => {
+    if (tbo === tollBoothOperator)
+      return;
+    
+    setTollBoothOperator(tbo)
+    update(tbo, vehicleAddress);
+  };
+
+  const enterRoad = async () => {
+    let msg = 'Invalid';
+
+    if(clearSecret && currentInstance) {
+      try {
+      
+        const hashedSecret = await currentInstance.hashSecret.call(clearSecret);
+        console.log(entryBooth, hashedSecret, vehicleAddress, deposit);
+        const txObj = await currentInstance.enterRoad(entryBooth, hashedSecret, {from: vehicleAddress, value: deposit, gas: 500000});
+      
+        if(txObj.logs.length > 0) {
+          const logRoadEntered = txObj.logs[0];
+          if (logRoadEntered.event === "LogRoadEntered") {
+            msg = 'Road entered successfully!';
+          }  
+        }
+
+      } catch(e) {
+        console.log(e);
+        msg = 'Unable to enter road, please check';
+      }
+    }
+
+    setMessage(msg);
   };
 
   return (
     <>
-      <h1>Vehicle - {testString}</h1>
-      <h3>Get Balance</h3>
-      <TextField
-          id="outlined-name"
-          size="small"
-          label="0x0"
-          onChange={e => setVehicleAddress(e.target.value)}
-          margin="normal"
-          placeholder="Enter Vehicle Address (0x0)"
-          variant="outlined"
-      />
+      <h1>Vehicle</h1>
+      {message}<br/>
+      <VehicleSelector
+        vehicles={props.vehicles}
+        vehicleChanged={(vehicle) => updateVehicle(vehicle)}/>
       <br/>
-      <Button
-          size="small" 
-          color="primary"
-          variant="contained"
-          onClick={() => getVehicleDetails()}>
-          Get Vehicle Details
-      </Button>
 
-      <h3>Balance: {fromWei(balance.toString())} Ether</h3>
+      {vehicleAddress ? 
+      <>
+        <h3>Balance: {fromWei(balance.toString())} Ether</h3>
 
-      <h3>Enter Road</h3>
-      <TextField
-          id="outlined-name"
-          size="small"
-          label="Secret to hash"
-          onChange={e => setClearSecret(e.target.value)}
-          margin="normal"
-          placeholder="secret"
-          variant="outlined"
-      />
-      
-      <Button
-          size="small" 
-          color="primary"
-          variant="contained"
-          onClick={() => getHash()}>
-          Get Hash
-      </Button>
-
-      {/* <TextField
-          id="outlined-name"
-          size="small"
-          label="Enter Entry Booth"
-          onChange={e => setBoothAddress(e.target.value)}
-          margin="normal"
-          placeholder="0x0"
-          variant="outlined"
-      />
-      <TextField
-          id="outlined-name"
-          size="small"
-          label="Hashed secret"
-          value={hashedSecret}
-          disabled="true"
-          margin="normal"
-          placeholder="0x0"
-          variant="outlined"
-      />
-      <TextField
-          id="outlined-name"
-          size="small"
-          label="Deposit"
-          onChange={e => setDeposit(e.target.value)}
-          margin="normal"
-          placeholder="0"
-          variant="outlined"
-      />
-      <br/>
-      <Button
-          size="small" 
-          color="primary"
-          variant="contained"
-          onClick={() => enterRoad()}>
-          Enter
-      </Button> */}
+        <h3>Enter Road</h3>
+        <TollBoothOperatorsSelector
+          tbos={props.tbos}
+          tboChanged={(tbo)=>updateTbo(tbo)}/>
+        <br/>
+        <TollBoothSelector
+          booths={booths}
+          boothChanged={(booth) => setEntryBooth(booth)}/>
+        <br/>
+        <TextField
+            id="outlined-name"
+            size="small"
+            label="Secret to hash"
+            onChange={e => setClearSecret(e.target.value)}
+            margin="normal"
+            placeholder="secret"
+            variant="outlined"
+        />
+        <br/>
+        <TextField
+            id="outlined-name"
+            size="small"
+            label="Deposit"
+            onChange={e => setDeposit(e.target.value)}
+            margin="normal"
+            placeholder="deposit"
+            variant="outlined"
+        />
+        <br/>
+        <Button
+            size="small" 
+            color="primary"
+            variant="contained"
+            disabled={!currentInstance || !clearSecret || !deposit || !entryBooth}
+            onClick={() => enterRoad()}>
+            Enter
+        </Button>
+        <VehicleEntries
+          entries={entries}/>
+        <VehicleEntries
+          exits={exits}/>  
+      </>: null}
     </>
   );
 };
@@ -747,26 +1097,177 @@ const Vehicle = ({web3, testString}) => {
 // * be informed on the status of the refund or of the pending payment of the vehicle reported above. 
 // * Typically a row in a table stating normal exit or pending payment.
 // * no need to see its history of entry / exit.
-const TollBooth = ({}) => {
+const TollBooth = (props) => {
+  const [message, setMessage] = useState('');
+  
+  const [clearSecret, setClearSecret] = useState('');
+  const [tollBoothOperator, setTollBoothOperator] = useState(null);
+  const [exitBooth, setExitBooth] = useState('');
+
+  const [currentInstance, setCurrentInstance] = useState(null);
+
+  const [exits, setExits] = useState([]);
+  const [pendings, setPendings] = useState([]);
+  const [booths, setBooths] = useState([]);
+  
+  let tmpPendings = [];
+  let tmpExits = [];
+  let tmpTollBooths = [];
+
+  const update = async (tbo) => {
+    if (!tbo)
+      return;
+    
+    const TollBoothOperator = TruffleContract(TollBoothOperatorArtifact);      
+    TollBoothOperator.setProvider(props.web3.currentProvider);
+    const instance = await TollBoothOperator.at(tbo.value.operator);
+    setCurrentInstance(instance);
+  
+    setBooths([]);
+
+    instance.LogTollBoothAdded({}, {fromBlock:0}).watch((err, result) => {
+      
+      tmpTollBooths = [...tmpTollBooths, 
+        { id: tmpTollBooths.length, 
+        value: {  operator: result.args.sender, 
+          tollBooth: result.args.tollBooth}}];
+      
+      setBooths(tmpTollBooths);
+    });
+  };
+
+  const tollBoothChanged = async (booth) => {
+    
+    setExitBooth(booth);
+
+    setExits([]);
+    setPendings([]);
+    
+    if (!currentInstance)
+      return;
+    
+    currentInstance.LogRoadExited({exitBooth: booth}, {fromBlock:0}).watch((err, result) => {
+      
+      tmpExits = [...tmpExits, 
+        { id: tmpExits.length, 
+        value: {  exitBooth: result.args.exitBooth, 
+          exitSecretHashed: result.args.exitSecretHashed,
+                  finalFee: result.args.finalFee.toNumber(),
+                refundWeis: result.args.refundWeis.toNumber()}}];
+      
+      setExits(tmpExits);
+    });
+
+    currentInstance.LogPendingPayment({exitBooth: booth}, {fromBlock:0}).watch((err, result) => {
+      
+      tmpPendings = [...tmpPendings, 
+        { id: tmpPendings.length, 
+        value: {  exitSecretHashed: result.args.exitSecretHashed, 
+                  entryBooth: result.args.entryBooth,
+                  exitBooth: result.args.exitBooth}}];
+      
+      setPendings(tmpPendings);
+    });
+  };
+
+  const exitRoad = async () => {
+    let msg = 'Unable to exit road';
+    
+    if (currentInstance) {
+      const txObj = await currentInstance.reportExitRoad(clearSecret, {from: exitBooth, gas: 500000});
+
+    }
+
+    setMessage(msg);
+  };
+
   return (
     <>
       <h1>Toll Booth</h1>
+      {message}<br/>
+      <TollBoothOperatorsSelector
+          tbos={props.tbos}
+          tboChanged={(tbo)=>update(tbo)}/>
+      <br/>
+      {currentInstance ?
+      <>
+      <TollBoothSelector
+        booths={booths}
+        boothChanged={(booth) => tollBoothChanged(booth)}/>
+
+      <br/>
+      <TextField
+          id="outlined-name"
+          size="small"
+          label="Clear secret"
+          onChange={e => setClearSecret(e.target.value)}
+          margin="normal"
+          placeholder="secret"
+          variant="outlined"
+      />
+      <br/>
+      <Button
+            size="small" 
+            color="primary"
+            variant="contained"
+            disabled={!currentInstance || !clearSecret || !exitBooth}
+            onClick={() => exitRoad()}>
+            Exit
+      </Button>
+      <VehicleExits
+        exits={exits}/>
+      <VehiclePendings
+        pendings={pendings}/>
+        
+      </>: null}
     </>
+  );
+};
+
+const TabView = (props) => {
+  
+  const classes = useStyles();
+  const [value, setValue] = React.useState(0);
+
+  function handleChange(event, newValue) {
+    setValue(newValue);
+  }
+
+  return (
+    <div className={classes.root}>
+      <AppBar position="static">
+        <Tabs value={value} onChange={handleChange}>
+          <Tab label="Regulator" />
+          <Tab label="Toll Booth Operator" />
+          <Tab label="Vehicle" />
+          <Tab label="Toll Booth" />
+        </Tabs>
+      </AppBar>
+      {value === 0 && <Regulator {...props}/>}
+      {value === 1 && <TollBoothOperator {...props}/>}
+      {value === 2 && <Vehicle {...props}/>}
+      {value === 3 && <TollBooth {...props}/>}
+    </div>
   );
 };
 
 class App extends Component {
 
   state = {web3: null, regulator: null, tbos: [], vehicles: [], booths: [], accounts: []};
+  
+  handleChange(event, newValue) {
+    this.setState({value: newValue});
+  }
+
   componentDidMount = async () => {
     try {
       // Workaround for compatibility between web3 and truffle-contract
       Web3.providers.HttpProvider.prototype.sendAsync = Web3.providers.HttpProvider.prototype.send;	
 	    const web3 = await getWeb3();
-	    const accounts = await web3.eth.getAccounts();
+      const accounts = await web3.eth.getAccounts();
       const Regulator = TruffleContract(RegulatorArtifact);      
       Regulator.setProvider(web3.currentProvider);
-	    const instance = await Regulator.deployed();
+      const instance = await Regulator.deployed();
     	
       this.setState({ web3:web3, accounts:accounts, regulator:instance });
       // Listen to Vehicle types
@@ -800,23 +1301,13 @@ class App extends Component {
   };
 
   render() {
-    
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
     
     return (
-      
       <div className="App">
-        <Regulator {...this.state}/>
-        <TollBoothOperator {...this.state}/>
-        {/* <Vehicle
-          web3={this.state.web3}
-          tollBoothOperatorInstance={this.state.tollBoothOperatorInstance}
-        />
-        <TollBooth
-          web3={this.state.web3}
-          tollBoothOperatorInstance={this.state.tollBoothOperatorInstance}/> */}
+        <TabView {...this.state}/>
       </div>
     );
   }
