@@ -506,6 +506,7 @@ const Regulator = (props) => {
       }  
     } catch(e) {
       console.log(e);
+      msg = e.message;
     }
     setMessage(msg);
   };
@@ -525,6 +526,7 @@ const Regulator = (props) => {
       }
     } catch(e) {
       console.log(e);
+      msg = e.message;
     }
     setMessage(msg);
   };
@@ -707,6 +709,7 @@ const TollBoothOperator = (props) => {
       }
     } catch(e) {
       console.log(e);
+      msg = e.message;
     }
 
     setMessage(msg);
@@ -739,6 +742,7 @@ const TollBoothOperator = (props) => {
       }
     } catch(e) {
       console.log(e);
+      msg = e.message;
     }
 
     setMessage(msg);
@@ -766,6 +770,7 @@ const TollBoothOperator = (props) => {
       }
     } catch(e) {
       console.log(e);
+      msg = e.message;
     }
 
     setMessage(msg);
@@ -1036,7 +1041,7 @@ const Vehicle = (props) => {
 
       } catch(e) {
         console.log(e);
-        msg = 'Unable to enter road, please check';
+        msg = e.message;
       }
     }
 
@@ -1196,11 +1201,21 @@ const TollBooth = (props) => {
   const exitRoad = async () => {
     let msg = 'Unable to exit road';
     
+    try {
     if (currentInstance) {
       const txObj = await currentInstance.reportExitRoad(clearSecret, {from: exitBooth, gas: 5000000});
-
+      if(txObj.logs.length > 0) {
+        if (txObj.logs[0].event === "LogRoadExited") {
+          msg = 'Road exited successfully!';
+        } else {
+          msg = 'Pending payment';
+        }  
+      }
     }
-
+    } catch(e) {
+      console.log(e);
+      msg = e.message;
+    }
     setMessage(msg);
   };
 
