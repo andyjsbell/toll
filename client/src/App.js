@@ -20,8 +20,6 @@ import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import Typography from '@material-ui/core/Typography';
 
-// {loading && <CircularProgress size={24} className={classes.buttonProgress} />}
-
 // TODO
 
 // Use call to check calls
@@ -62,11 +60,14 @@ const useStyles = makeStyles(theme => ({
   paper: {
     marginTop: theme.spacing(3),
     width: '100%',
+    alignItems: "center",
+    justify: "center",
     overflowX: 'auto',
     marginBottom: theme.spacing(2),
   },
   table: {
     minWidth: 650,
+    maxWidth: 1000
   },
 }));
 
@@ -138,15 +139,16 @@ const VehicleTypesSelector = ({vehicles, vehicleTypeChanged}) => {
             <Select
                 value={vehicleType}
                 onChange={e => update(e.target.value)}>
+                <MenuItem value="" disabled>
+                  Vehicle Type
+                </MenuItem>
                 {
                     vehicles.map( (vehicle) => (
                         <MenuItem key={vehicle.id} value={vehicle.value.type}>{vehicle.value.type}</MenuItem>
                     ))
                 }
-                <MenuItem value="" disabled>
-                  Vehicle Type
-                </MenuItem>
-            </Select>:'No operators!'}
+
+            </Select>:'No vehicles'}
     </FormControl>
   );
 };
@@ -192,9 +194,11 @@ const TollBoothOperatorsSelector = ({tbos, tboChanged}) => {
   };
 
   return (
+    <>
+    {tbos.length > 0 ?
     <FormControl className={classes.formControl} style={{minWidth: 300}}>
       <InputLabel htmlFor="name">Operator</InputLabel>
-        {tbos.length > 0 ?
+        
             <Select
                 value={tbo}
                 onChange={e => update(e.target.value)}
@@ -208,8 +212,10 @@ const TollBoothOperatorsSelector = ({tbos, tboChanged}) => {
                     ))
                 }
                 
-            </Select>:'No operators!'}
+            </Select>
     </FormControl>
+    :'No Toll Booth Operators'}
+    </>
   );
 };
 
@@ -271,7 +277,7 @@ const TollBoothSelector = ({booths, boothChanged, label}) => {
                 }
                 
             </Select>
-    </FormControl>: null}</>
+    </FormControl>: 'No toll booths!'}</>
   );
 };
 
@@ -509,7 +515,8 @@ const Regulator = (props) => {
     setMessage('');
     let msg = 'Error in creating Toll booth operator';
     try {
-      const txObj = await props.regulator.createNewOperator(operatorOwner, depositWeis, { from: props.accounts[0], gas: 500000 });
+      console.log(operatorOwner, depositWeis, props.accounts[0]);
+      const txObj = await props.regulator.createNewOperator(operatorOwner, depositWeis, { from: props.accounts[0], gas: 5000000 });
       if(txObj.logs.length === 2) {
         const logTollBoothOperatorCreated = txObj.logs[1];
         if (logTollBoothOperatorCreated.event === "LogTollBoothOperatorCreated") {
@@ -539,10 +546,10 @@ const Regulator = (props) => {
       
         <TextField
             id="outlined-name"
-            label="0..."
+            label="Enter Vehicle Type"
             onChange={e => setVehicleType(e.target.value)}
             margin="normal"
-            placeholder="Enter Vehicle Type"
+            placeholder="1"
             variant="outlined"
         /><br/>  
         <Button 
@@ -568,10 +575,10 @@ const Regulator = (props) => {
       
         <TextField
             id="outlined-name"
-            label="0"
+            label="Set Deposit in Wei"
             onChange={e => setDepositWeis(e.target.value)}
             margin="normal"
-            placeholder="Set Deposit in Wei"
+            placeholder="1"
             variant="outlined"
         /><br/>
         <Button
@@ -688,7 +695,9 @@ const TollBoothOperator = (props) => {
       if(!currentInstance)
         return;
       
-      const txObj = await currentInstance.addTollBooth(tollBoothAddress, {from: tollBoothOperator.value.owner, gas: 500000});
+      const txObj = await currentInstance.addTollBooth(tollBoothAddress, 
+                                                        {from: tollBoothOperator.value.owner, 
+                                                          gas: 5000000});
             
       if(txObj.logs.length === 1) {
         const logTollBoothAdded = txObj.logs[0];
@@ -720,7 +729,7 @@ const TollBoothOperator = (props) => {
                                                         exitBoothAddress, 
                                                         routePrice, 
                                                         {from: tollBoothOperator.value.owner, 
-                                                          gas: 500000});
+                                                          gas: 5000000});
           
       if(txObj.logs.length > 1) {
         const logRoutePriceSet = txObj.logs[0];
@@ -736,8 +745,6 @@ const TollBoothOperator = (props) => {
   };
 
   const setNewMultiplier = async () => {
-    console.log('Set New Multiplier');
-
     let msg = 'There was an error in setting the multiplier';
 
     try {
@@ -749,9 +756,9 @@ const TollBoothOperator = (props) => {
       const txObj = await currentInstance.setMultiplier(vehicleType, 
                                                                   multiplier, 
                                                                   {from: tollBoothOperator.value.owner, 
-                                                                    gas: 500000});
+                                                                    gas: 5000000});
             
-      if(txObj.logs.length > 1) {
+      if(txObj.logs.length > 0) {
         const logMultiplierSet = txObj.logs[0];
         if (logMultiplierSet.event === "LogMultiplierSet") {
           msg = 'Set multiplier successfully!';
@@ -793,7 +800,7 @@ const TollBoothOperator = (props) => {
       if(txObj.logs.length > 0) {
         const logPausedSet = txObj.logs[0];
         if (logPausedSet.event === "LogPausedSet") {
-          msg = 'Started successfully!';
+          msg = 'Stopped successfully!';
           setRunning(false);
         }  
       }
@@ -804,10 +811,9 @@ const TollBoothOperator = (props) => {
 
   return (
     <>
+      <h1>Toll Booth Operator</h1>      
       {props.tbos.length > 0 ? 
-      <>
-        <h1>Toll Booth Operator</h1>
-        <h3>Select Operator</h3>      
+      <>  
         {message}<br/>
         {isLoading && <CircularProgress size={68}/>}
         <br/>
@@ -906,15 +912,15 @@ const TollBoothOperator = (props) => {
               size="small" 
               color="primary"
               variant="contained"
-              disabled={!tollBoothOperator}
+              disabled={!tollBoothOperator || !vehicleType || !multiplier}
               onClick={() => setNewMultiplier()}>
               Set Mulitiplier
           </Button>
           <Multipliers
             multipliers={multipliers}/>
         </div>
-        </>: null}      
-      </> : null}
+        </>: null}
+      </> : "No Toll Booth Operators"}
     </>
   );
 };
@@ -940,6 +946,7 @@ const Vehicle = (props) => {
   const [entryBooth, setEntryBooth] = useState('');
 
   const [currentInstance, setCurrentInstance] = useState(null);
+  const [isLoading, setLoading] = useState(false);
 
   let tmpTollBooths = [];
   let tmpEntries = [];
@@ -949,6 +956,7 @@ const Vehicle = (props) => {
     if (!tbo)
       return;
     
+    setLoading(true);
     const TollBoothOperator = TruffleContract(TollBoothOperatorArtifact);      
     TollBoothOperator.setProvider(props.web3.currentProvider);
     const instance = await TollBoothOperator.at(tbo.value.operator);
@@ -992,6 +1000,8 @@ const Vehicle = (props) => {
         setExits(tmpExits);
       });
     });
+
+    setLoading(false);
   };
 
   const updateVehicle = async (vehicle) => {
@@ -1015,8 +1025,7 @@ const Vehicle = (props) => {
       try {
       
         const hashedSecret = await currentInstance.hashSecret.call(clearSecret);
-        console.log(entryBooth, hashedSecret, vehicleAddress, deposit);
-        const txObj = await currentInstance.enterRoad(entryBooth, hashedSecret, {from: vehicleAddress, value: deposit, gas: 500000});
+        const txObj = await currentInstance.enterRoad(entryBooth, hashedSecret, {from: vehicleAddress, value: deposit, gas: 5000000});
       
         if(txObj.logs.length > 0) {
           const logRoadEntered = txObj.logs[0];
@@ -1036,7 +1045,9 @@ const Vehicle = (props) => {
 
   return (
     <>
-      <h1>Vehicle</h1>
+      <h1>Vehicle</h1>            
+      {props.vehicles.length > 0 ? 
+      <>
       {message}<br/>
       <VehicleSelector
         vehicles={props.vehicles}
@@ -1046,12 +1057,17 @@ const Vehicle = (props) => {
       {vehicleAddress ? 
       <>
         <h3>Balance: {fromWei(balance.toString())} Ether</h3>
-
         <h3>Enter Road</h3>
+        {isLoading && <CircularProgress size={68}/>}
+        <br/>
+
+        
         <TollBoothOperatorsSelector
           tbos={props.tbos}
           tboChanged={(tbo)=>updateTbo(tbo)}/>
         <br/>
+        {currentInstance ?
+        <>
         <TollBoothSelector
           booths={booths}
           boothChanged={(booth) => setEntryBooth(booth)}/>
@@ -1088,7 +1104,10 @@ const Vehicle = (props) => {
           entries={entries}/>
         <VehicleEntries
           exits={exits}/>  
+        </> : null }
+
       </>: null}
+    </> : "No Vehicles"}
     </>
   );
 };
@@ -1109,7 +1128,8 @@ const TollBooth = (props) => {
   const [exits, setExits] = useState([]);
   const [pendings, setPendings] = useState([]);
   const [booths, setBooths] = useState([]);
-  
+  const [isLoading, setLoading] = useState(false);
+
   let tmpPendings = [];
   let tmpExits = [];
   let tmpTollBooths = [];
@@ -1118,6 +1138,7 @@ const TollBooth = (props) => {
     if (!tbo)
       return;
     
+    setLoading(true);
     const TollBoothOperator = TruffleContract(TollBoothOperatorArtifact);      
     TollBoothOperator.setProvider(props.web3.currentProvider);
     const instance = await TollBoothOperator.at(tbo.value.operator);
@@ -1134,6 +1155,8 @@ const TollBooth = (props) => {
       
       setBooths(tmpTollBooths);
     });
+
+    setLoading(false);
   };
 
   const tollBoothChanged = async (booth) => {
@@ -1174,7 +1197,7 @@ const TollBooth = (props) => {
     let msg = 'Unable to exit road';
     
     if (currentInstance) {
-      const txObj = await currentInstance.reportExitRoad(clearSecret, {from: exitBooth, gas: 500000});
+      const txObj = await currentInstance.reportExitRoad(clearSecret, {from: exitBooth, gas: 5000000});
 
     }
 
@@ -1184,7 +1207,10 @@ const TollBooth = (props) => {
   return (
     <>
       <h1>Toll Booth</h1>
+      
       {message}<br/>
+      {isLoading && <CircularProgress size={68}/>}
+      <br/>
       <TollBoothOperatorsSelector
           tbos={props.tbos}
           tboChanged={(tbo)=>update(tbo)}/>
