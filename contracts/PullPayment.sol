@@ -44,8 +44,7 @@ contract PullPayment is PullPaymentA {
             uint amount = balances[msg.sender];
             balances[msg.sender] = 0;
             emit LogPaymentWithdrawn(msg.sender, amount);
-            msg.sender.call.value(amount)("");
-            return true;
+            (success, ) = msg.sender.call.value(amount)("");
         }
 
     /**
