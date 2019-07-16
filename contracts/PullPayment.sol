@@ -41,10 +41,10 @@ contract PullPayment is PullPaymentA {
         public
         returns(bool success) {
             require(balances[msg.sender] > 0, 'No balance available');
-            uint amount = balances[msg.sender];  // save gas here?
+            uint amount = balances[msg.sender];
             balances[msg.sender] = 0;
             emit LogPaymentWithdrawn(msg.sender, amount);
-            msg.sender.call.value(amount);
+            msg.sender.call.value(amount)("");
             return true;
         }
 

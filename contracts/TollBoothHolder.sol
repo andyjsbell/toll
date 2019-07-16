@@ -37,9 +37,6 @@ contract TollBoothHolder is Owned, TollBoothHolderI {
         returns(bool success) {
             require(tollBooth != address(0x0), 'Invalid address');
             require(!booths[tollBooth], 'Booth exists');
-            // TODO
-            // When part of TollBoothOperatorI, it should be possible to add toll booths even when
-            // the contract is paused.
             emit LogTollBoothAdded(msg.sender, tollBooth);
             booths[tollBooth] = true;
             return true;
@@ -84,9 +81,6 @@ contract TollBoothHolder is Owned, TollBoothHolderI {
         returns(bool success) {
             require(tollBooth != address(0x0), 'Invalid address');
             require(isTollBooth(tollBooth), 'Booth does not exist');
-            // TODO
-            // When part of TollBoothOperatorI, it should be possible to remove toll booth even when
-            // the contract is paused.
             booths[tollBooth] = false;
             emit LogTollBoothRemoved(msg.sender, tollBooth);
             return true;

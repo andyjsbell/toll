@@ -18,32 +18,13 @@ import InputLabel from '@material-ui/core/InputLabel';
 import AppBar from '@material-ui/core/AppBar';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
-import Typography from '@material-ui/core/Typography';
-
-// TODO
-
-// Use call to check calls
-// Add progress from material and loading state to components to lock button until transaction
-// Can we filter the logs to give latest instead of lists valid for page load?
-
 
 const Web3 = require('web3');
 const { fromWei, padLeft, toBN } = Web3.utils;
 const TruffleContract = require('truffle-contract');
 const RegulatorArtifact = require('./contracts/Regulator.json');
 const TollBoothOperatorArtifact = require('./contracts/TollBoothOperator.json');
-
-function TabContainer(props) {
-  return (
-    <Typography component="div" style={{ padding: 8 * 3 }}>
-      {props.children}
-    </Typography>
-  );
-}
-
-// TabContainer.propTypes = {
-//   children: PropTypes.node.isRequired,
-// };
+const maxGas = 1maxGas;
 
 const useStyles = makeStyles(theme => ({
   button: {
@@ -496,14 +477,18 @@ const Regulator = (props) => {
     let msg = 'Error in creating vehicle type';
     
     try {
+      // Try before
+      await props.regulator.setVehicleType.call(vehicleAddress, vehicleType, {from: props.accounts[0]});
+      
       const txObj = await props.regulator.setVehicleType(vehicleAddress, vehicleType, { from: props.accounts[0] });
-    
+      
       if(txObj.logs.length === 1) {
         const logVehicleTypeSet = txObj.logs[0];
         if (logVehicleTypeSet.event === "LogVehicleTypeSet") {
           msg = 'Vehicle type set successfully!';
         }  
-      }  
+      }
+        
     } catch(e) {
       console.log(e);
       msg = e.message;
@@ -516,8 +501,10 @@ const Regulator = (props) => {
     setMessage('');
     let msg = 'Error in creating Toll booth operator';
     try {
-      console.log(operatorOwner, depositWeis, props.accounts[0]);
-      const txObj = await props.regulator.createNewOperator(operatorOwner, depositWeis, { from: props.accounts[0], gas: 5000000 });
+      // Try before
+      await props.regulator.createNewOperator.call(operatorOwner, depositWeis, { from: props.accounts[0], gas: maxGas });
+      
+      const txObj = await props.regulator.createNewOperator(operatorOwner, depositWeis, { from: props.accounts[0], gas: maxGas });
       if(txObj.logs.length === 2) {
         const logTollBoothOperatorCreated = txObj.logs[1];
         if (logTollBoothOperatorCreated.event === "LogTollBoothOperatorCreated") {
@@ -697,9 +684,13 @@ const TollBoothOperator = (props) => {
       if(!currentInstance)
         return;
       
+      // Try before
+      await currentInstance.addTollBooth.call(tollBoothAddress, 
+                                              {from: tollBoothOperator.value.owner, 
+                                                gas: maxGas});
       const txObj = await currentInstance.addTollBooth(tollBoothAddress, 
                                                         {from: tollBoothOperator.value.owner, 
-                                                          gas: 5000000});
+                                                          gas: maxGas});
             
       if(txObj.logs.length === 1) {
         const logTollBoothAdded = txObj.logs[0];
@@ -722,17 +713,21 @@ const TollBoothOperator = (props) => {
     let msg = 'There was an error in adding the base route price';
 
     try {
-      console.log('currentInstance:', currentInstance);
-
       if(!currentInstance)
         return;
 
-      console.log(entryBoothAddress, exitBoothAddress, routePrice, tollBoothOperator.value.owner);
+      // Try before
+      await currentInstance.setRoutePrice.call(entryBoothAddress, 
+                                                exitBoothAddress, 
+                                                routePrice, 
+                                                {from: tollBoothOperator.value.owner, 
+                                                  gas: maxGas});
+
       const txObj = await currentInstance.setRoutePrice(entryBoothAddress, 
                                                         exitBoothAddress, 
                                                         routePrice, 
                                                         {from: tollBoothOperator.value.owner, 
-                                                          gas: 5000000});
+                                                          gas: maxGas});
           
       if(txObj.logs.length > 1) {
         const logRoutePriceSet = txObj.logs[0];
@@ -752,15 +747,19 @@ const TollBoothOperator = (props) => {
     let msg = 'There was an error in setting the multiplier';
 
     try {
-      console.log('currentInstance:', currentInstance);
-
       if(!currentInstance)
         return;
       
+      // Try before        
+      await currentInstance.setMultiplier.call(vehicleType, 
+                                              multiplier, 
+                                              {from: tollBoothOperator.value.owner, 
+                                                gas: maxGas});
+
       const txObj = await currentInstance.setMultiplier(vehicleType, 
-                                                                  multiplier, 
-                                                                  {from: tollBoothOperator.value.owner, 
-                                                                    gas: 5000000});
+                                                        multiplier, 
+                                                        {from: tollBoothOperator.value.owner, 
+                                                          gas: maxGas});
             
       if(txObj.logs.length > 0) {
         const logMultiplierSet = txObj.logs[0];
@@ -780,7 +779,13 @@ const TollBoothOperator = (props) => {
     
     let msg = 'Failed to start';
 
-    if(currentInstance) {
+    try {
+      if(!currentInstance)
+        return;
+      
+      // Try before
+      await currentInstance.setPaused.call(false, {from: tollBoothOperator.value.owner});
+
       const txObj = await currentInstance.setPaused(false, {from: tollBoothOperator.value.owner});
 
       if(txObj.logs.length > 0) {
@@ -790,6 +795,9 @@ const TollBoothOperator = (props) => {
           setRunning(true);
         }  
       }
+    } catch(e) {
+      console.log(e);
+      msg = e.message;
     }
     
     setMessage(msg);
@@ -799,7 +807,12 @@ const TollBoothOperator = (props) => {
     
     let msg = 'Failed to stop';
     
-    if(currentInstance) {
+    try {
+      if(!currentInstance)
+        return;
+      
+      // Try before
+      await currentInstance.setPaused.call(true, {from: tollBoothOperator.value.owner});
       const txObj = await currentInstance.setPaused(true, {from: tollBoothOperator.value.owner});
 
       if(txObj.logs.length > 0) {
@@ -809,6 +822,9 @@ const TollBoothOperator = (props) => {
           setRunning(false);
         }  
       }
+    } catch(e) {
+      console.log(e);
+      msg = e.message;
     }
 
     setMessage(msg);
@@ -1030,7 +1046,9 @@ const Vehicle = (props) => {
       try {
       
         const hashedSecret = await currentInstance.hashSecret.call(clearSecret);
-        const txObj = await currentInstance.enterRoad(entryBooth, hashedSecret, {from: vehicleAddress, value: deposit, gas: 5000000});
+        // Try before
+        await currentInstance.enterRoad.call(entryBooth, hashedSecret, {from: vehicleAddress, value: deposit, gas: maxGas});
+        const txObj = await currentInstance.enterRoad(entryBooth, hashedSecret, {from: vehicleAddress, value: deposit, gas: maxGas});
       
         if(txObj.logs.length > 0) {
           const logRoadEntered = txObj.logs[0];
@@ -1202,16 +1220,18 @@ const TollBooth = (props) => {
     let msg = 'Unable to exit road';
     
     try {
-    if (currentInstance) {
-      const txObj = await currentInstance.reportExitRoad(clearSecret, {from: exitBooth, gas: 5000000});
-      if(txObj.logs.length > 0) {
-        if (txObj.logs[0].event === "LogRoadExited") {
-          msg = 'Road exited successfully!';
-        } else {
-          msg = 'Pending payment';
-        }  
+      if (currentInstance) {
+        // Try before
+        await currentInstance.reportExitRoad.call(clearSecret, {from: exitBooth, gas: maxGas});
+        const txObj = await currentInstance.reportExitRoad(clearSecret, {from: exitBooth, gas: maxGas});
+        if(txObj.logs.length > 0) {
+          if (txObj.logs[0].event === "LogRoadExited") {
+            msg = 'Road exited successfully!';
+          } else {
+            msg = 'Pending payment';
+          }  
+        }
       }
-    }
     } catch(e) {
       console.log(e);
       msg = e.message;

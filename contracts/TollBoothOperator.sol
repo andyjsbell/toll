@@ -59,7 +59,6 @@ contract TollBoothOperator is
      }
 
      function () external {
-         // TODO reject all calls
          revert('nothing');
      }
 
@@ -75,8 +74,6 @@ contract TollBoothOperator is
         public
         view
         returns(bytes32 hashed) {
-
-            // TODO check algorithm
             return keccak256(abi.encodePacked(secret, address(this)));
         }
 
@@ -129,18 +126,17 @@ contract TollBoothOperator is
             // It should roll back if `entryBooth` is not a tollBooth.
             require(isTollBooth(entryBooth), 'Not tollbooth');
             require(entries[exitSecretHashed].vehicle == address(0x0), 'Secret hash in use');
-            address vehicle = msg.sender;
             // It should roll back when the vehicle is not a registered vehicle.
-            uint vehicleType = getRegulator().getVehicleType(vehicle);
+            uint vehicleType = getRegulator().getVehicleType(msg.sender);
             require(vehicleType != 0, 'Vehicle not registered');
             // ??? TODO
             // It should roll back when the vehicle is not allowed on this road system.
             uint multiplier = getMultiplier(vehicleType);
             // It should roll back if less than deposit * multiplier was sent alongside.
             require(msg.value >= getDeposit() * multiplier, 'Insufficient value sent');
-            emit LogRoadEntered(vehicle, entryBooth, exitSecretHashed, multiplier, msg.value);
+            emit LogRoadEntered(msg.sender, entryBooth, exitSecretHashed, multiplier, msg.value);
 
-            entries[exitSecretHashed] = Entry(vehicle, entryBooth, multiplier, msg.value);
+            entries[exitSecretHashed] = Entry(msg.sender, entryBooth, multiplier, msg.value);
             return true;
         }
 
@@ -165,6 +161,7 @@ contract TollBoothOperator is
             uint depositedWeis) {
 
                 require(exitSecretHashed != "", 'Invalid hash');
+                // TODO Memory or storage
                 Entry memory entry = entries[exitSecretHashed];
 
                 return (entry.vehicle,
@@ -225,6 +222,7 @@ contract TollBoothOperator is
         returns (uint status) {
             require(isTollBooth(msg.sender), 'Not toll booth');
             bytes32 hashed = hashSecret(exitSecretClear);
+            // TODO Memory or storage
             Entry memory entry = entries[hashed];
             require(entry.vehicle != address(0x0), 'Not a valid entry');
             require(entry.entryBooth != msg.sender, 'Exit same as Entry');
@@ -245,10 +243,9 @@ contract TollBoothOperator is
                     asyncPayTo(entry.vehicle, refundWeis);
                 }
 
-                // TODO clear memory for entry
-                entries[hashed].vehicle = address(0x0);
                 entries[hashed].multiplier = 0;
                 entries[hashed].depositedWeis = 0;
+                entries[hashed].vehicle = address(0x0);
 
                 emit LogRoadExited(msg.sender, hashed, finalFee, refundWeis);
 
@@ -310,9 +307,10 @@ contract TollBoothOperator is
             require(isTollBooth(entryBooth) && isTollBooth(exitBooth), 'Not valid booth');
             uint pendingCount = pending[keccak256(abi.encodePacked(entryBooth, exitBooth))];
             require(pendingCount > 0, 'Zero pending payments');
-            // TODO this needs to be moved down, writing to storage later in the function
-            pending[keccak256(abi.encodePacked(entryBooth, exitBooth))] = pendingCount.sub(count);
             uint routePrice = getRoutePrice(entryBooth, exitBooth);
+
+            // TODO is this the best spot
+            pending[keccak256(abi.encodePacked(entryBooth, exitBooth))] = pendingCount.sub(count);
 
             // FIFO
             if (routePrice > 0) {
@@ -320,6 +318,7 @@ contract TollBoothOperator is
                 for (uint i = 0; i < count; i++) {
 
                     bytes32 hashedSecret = hashedSecrets.dequeue();
+                    // TODO Memory or storage
                     Entry memory entry = entries[hashedSecret];
                     require(entry.vehicle != address(0x0), 'Invalid queue');
                     // CHECK, can multiplier be 0 here
@@ -335,10 +334,9 @@ contract TollBoothOperator is
 
                     emit LogRoadExited(exitBooth, hashedSecret, finalFee, refundWeis);
 
-                    // TODO clear memory for entry
-                    entries[hashedSecret].vehicle = address(0x0);
                     entries[hashedSecret].multiplier = 0;
                     entries[hashedSecret].depositedWeis = 0;
+                    entries[hashedSecret].vehicle = address(0x0);
 
                     asyncPayTo(getOwner(), finalFee);
                 }
