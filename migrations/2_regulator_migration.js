@@ -18,7 +18,9 @@ module.exports = function(deployer, network, accounts) {
                 if (logTollBoothOperatorCreated.event === "LogTollBoothOperatorCreated") {
                     const addr = logTollBoothOperatorCreated.args.newOperator;
                     TollBoothOperator.at(addr).then(tbo => {
-                        return tbo.setPaused(false, {from: accounts[1], gas:5000000});
+                        return tbo.setPaused(false, {from: accounts[1], gas:5000000}).then(txObj => {
+                            return;
+                        });
                     });
                 }  
         }

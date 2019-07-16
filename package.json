@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "install": "cd client && npm install",
-    "start": "cd client && npm start",
-    "dev": "cd client && PORT=8000 npm start",
+    "start": "cd client && npm run start",
+    "dev": "cd client && PORT=8000 HOST=0.0.0.0 npm run start",
     "build": "cd client && npm build",
     "test": "cd client && npm test",
     "eject": "cd client && npm eject"
