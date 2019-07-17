@@ -129,9 +129,9 @@ contract TollBoothOperator is
             // It should roll back when the vehicle is not a registered vehicle.
             uint vehicleType = getRegulator().getVehicleType(msg.sender);
             require(vehicleType != 0, 'Vehicle not registered');
-            // ??? TODO
             // It should roll back when the vehicle is not allowed on this road system.
             uint multiplier = getMultiplier(vehicleType);
+            require(multiplier > 0, 'Invalid multiplier');
             // It should roll back if less than deposit * multiplier was sent alongside.
             require(msg.value >= getDeposit() * multiplier, 'Insufficient value sent');
             emit LogRoadEntered(msg.sender, entryBooth, exitSecretHashed, multiplier, msg.value);
@@ -161,7 +161,6 @@ contract TollBoothOperator is
             uint depositedWeis) {
 
                 require(exitSecretHashed != "", 'Invalid hash');
-                // TODO Memory or storage
                 Entry memory entry = entries[exitSecretHashed];
 
                 return (entry.vehicle,
@@ -222,7 +221,6 @@ contract TollBoothOperator is
         returns (uint status) {
             require(isTollBooth(msg.sender), 'Not toll booth');
             bytes32 hashed = hashSecret(exitSecretClear);
-            // TODO Memory or storage
             Entry memory entry = entries[hashed];
             require(entry.vehicle != address(0x0), 'Not a valid entry');
             require(entry.entryBooth != msg.sender, 'Exit same as Entry');
@@ -309,19 +307,15 @@ contract TollBoothOperator is
             require(pendingCount > 0, 'Zero pending payments');
             uint routePrice = getRoutePrice(entryBooth, exitBooth);
 
-            // TODO is this the best spot
-            pending[keccak256(abi.encodePacked(entryBooth, exitBooth))] = pendingCount.sub(count);
-
             // FIFO
             if (routePrice > 0) {
 
                 for (uint i = 0; i < count; i++) {
 
                     bytes32 hashedSecret = hashedSecrets.dequeue();
-                    // TODO Memory or storage
                     Entry memory entry = entries[hashedSecret];
                     require(entry.vehicle != address(0x0), 'Invalid queue');
-                    // CHECK, can multiplier be 0 here
+                    require(entry.multiplier > 0, 'Invalid multiplier');
                     uint charge = routePrice.mul(entry.multiplier);
                     uint refundWeis = 0;
                     uint finalFee = entry.depositedWeis;
@@ -339,6 +333,8 @@ contract TollBoothOperator is
                     entries[hashedSecret].vehicle = address(0x0);
 
                     asyncPayTo(getOwner(), finalFee);
+
+                    pending[keccak256(abi.encodePacked(entryBooth, exitBooth))] = pendingCount.sub(1);
                 }
             }
 

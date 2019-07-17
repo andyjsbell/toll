@@ -54,7 +54,7 @@ contract MultiplierHolder is Owned, MultiplierHolderI {
 
             emit LogMultiplierSet(msg.sender, vehicleType, multiplier);
             multipliers[vehicleType] = multiplier;
-            
+
             return true;
         }
 
@@ -71,5 +71,4 @@ contract MultiplierHolder is Owned, MultiplierHolderI {
 
             return multipliers[vehicleType];
         }
-      
 }
