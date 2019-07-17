@@ -7,23 +7,9 @@ const TollBoothOperator = artifacts.require("./TollBoothOperator.sol");
 
 module.exports = function(deployer, network, accounts) {
 
-    deployer.deploy(Regulator).then((instance) => {
-        instance.createNewOperator( accounts[1], 10, 
-                                {from:accounts[0], gas: 5000000}).then(txObj => {
-        
-            if(txObj.logs.length === 2) {
-
-                const logTollBoothOperatorCreated = txObj.logs[1];
-                
-                if (logTollBoothOperatorCreated.event === "LogTollBoothOperatorCreated") {
-                    const addr = logTollBoothOperatorCreated.args.newOperator;
-                    TollBoothOperator.at(addr).then(tbo => {
-                        return tbo.setPaused(false, {from: accounts[1], gas:5000000}).then(txObj => {
-                            return;
-                        });
-                    });
-                }  
-        }
-        });
-    });
-};
+    deployer.deploy(Regulator)
+        .then(() => Regulator.deployed())
+        .then(instance => instance.createNewOperator( accounts[1], 10, {from:accounts[0], gas: 5000000}))
+        .then(txObj => TollBoothOperator.at(txObj.logs[1].args.newOperator))
+        .then(tbo => tbo.setPaused(false, {from: accounts[1], gas:5000000}));
+}
