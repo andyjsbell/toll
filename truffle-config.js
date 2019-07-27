@@ -11,7 +11,7 @@ module.exports = {
         }
     },
     mocha: {
-        reporter: "json",
-        slow: 500
+       reporter: "json",
+       slow: 500
     }
 };

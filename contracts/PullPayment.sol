@@ -15,6 +15,7 @@ contract PullPayment is PullPaymentA {
     using SafeMath for uint;
 
     mapping(address => uint) balances;
+
     /**
      * Called by a child contract to pay an address by way of withdraw pattern.
      * @param whom The account that is to receive the amount.
@@ -31,7 +32,9 @@ contract PullPayment is PullPaymentA {
      * Called by anyone that is owed a payment.
      *     It should roll back if the caller has 0 to withdraw.
      *     It should use the `.call.value` syntax and not limit the gas passed.
+     *     It should roll back if the recipient rejects the funds.
      *     Tests will use GreedyRecipient.sol to make sure a lot of gas is passed.
+     *     Under no circumstances should it ever burn Ethers.
      * @return Whether the action was successful.
      * Emits LogPaymentWithdrawn with:
      *     The sender of the action, to which the payment is sent.
@@ -43,8 +46,13 @@ contract PullPayment is PullPaymentA {
             require(balances[msg.sender] > 0, 'No balance available');
             uint amount = balances[msg.sender];
             balances[msg.sender] = 0;
-            emit LogPaymentWithdrawn(msg.sender, amount);
             (success, ) = msg.sender.call.value(amount)("");
+            if (success) {
+                emit LogPaymentWithdrawn(msg.sender, amount);
+            } else {
+                // Failed, put the balance back
+                balances[msg.sender] = amount;
+            }
         }
 
     /**
