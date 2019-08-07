@@ -50,8 +50,8 @@ contract PullPayment is PullPaymentA {
             if (success) {
                 emit LogPaymentWithdrawn(msg.sender, amount);
             } else {
-                // Failed, put the balance back
-                balances[msg.sender] = amount;
+                // Failed, roll back tx
+                revert('tx failed');
             }
         }
 
